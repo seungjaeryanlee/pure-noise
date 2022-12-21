@@ -152,7 +152,7 @@ def get_oversampled(dataset, num_sample_per_class, batch_size, TF_train, TF_test
     return ds
 
 
-def get_imbalanced(dataset, num_sample_per_class, batch_size, TF_train, TF_test):
+def get_imbalanced(dataset, num_sample_per_class, batch_size, TF_train, TF_test, download):
     print("Building CV {} data loader with {} workers".format(dataset, 8))
     ds = []
 
@@ -165,13 +165,13 @@ def get_imbalanced(dataset, num_sample_per_class, batch_size, TF_train, TF_test)
     else:
         raise NotImplementedError()
 
-    train_cifar = dataset_(root=DATA_ROOT, train=True, download=False, transform=TF_train)
+    train_cifar = dataset_(root=DATA_ROOT, train=True, download=download, transform=TF_train)
     train_in_idx = get_imbalanced_data(train_cifar, num_sample_per_class)
     train_in_loader = torch.utils.data.DataLoader(train_cifar, batch_size=batch_size,
                                                   sampler=SubsetRandomSampler(train_in_idx), num_workers=8)
     ds.append(train_in_loader)
 
-    test_cifar = dataset_(root=DATA_ROOT, train=False, download=False, transform=TF_test)
+    test_cifar = dataset_(root=DATA_ROOT, train=False, download=download, transform=TF_test)
     val_idx, test_idx= get_val_test_data(test_cifar, num_test_samples)
     val_loader = torch.utils.data.DataLoader(test_cifar, batch_size=100,
                                                   sampler=SubsetRandomSampler(val_idx), num_workers=8)
