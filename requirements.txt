@@ -5,3 +5,4 @@ gdown
 tensorflow
 tfrecord
 opencv-python
+albumentations
