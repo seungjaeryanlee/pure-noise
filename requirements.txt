@@ -1,3 +1,7 @@
 scipy
 wandb
 scikit-image
+gdown
+tensorflow
+tfrecord
+opencv-python
