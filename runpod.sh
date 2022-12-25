@@ -4,7 +4,7 @@
 /opt/conda/bin/conda init
 
 # Install Python packages
-/opt/conda/bin/pip install -r requirements
+/opt/conda/bin/pip install -r requirements.txt
 
 # Download tmux for JupyterLab
 apt update
@@ -12,10 +12,11 @@ apt install tmux -y
 
 # Download libGL for OpenCV
 apt update
-apt install -y libglib2.0-0 libsm6 libxrender1 libxext6
+apt install -y libgl1 libglib2.0-0 libsm6 libxrender1 libxext6
 
 # Download and prepare data
-/opt/conda/bin/python prepare_data.py
+# Ignore `terminate called without an active exception` error and continue running
+/opt/conda/bin/python prepare_data.py || true
 
 # Setup git
 git config --global user.name "Ryan Lee"
