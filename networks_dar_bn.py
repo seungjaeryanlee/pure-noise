@@ -82,9 +82,9 @@ class WideResNet(nn.Module):
                 m.bias.data.zero_()
     def forward(self, x, noise_mask):
         out = self.conv1(x)
-        out = self.block1((out, noise_mask))
-        out = self.block2((out, noise_mask))
-        out = self.block3((out, noise_mask))
+        out = self.block1(tuple([out, noise_mask]))
+        out = self.block2(tuple([out, noise_mask]))
+        out = self.block3(tuple([out, noise_mask]))
         out = self.relu(dar_bn(self.bn1, out, noise_mask))
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
