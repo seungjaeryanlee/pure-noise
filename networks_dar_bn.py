@@ -26,8 +26,7 @@ class BasicBlock(nn.Module):
         self.equalInOut = (in_planes == out_planes)
         self.convShortcut = (not self.equalInOut) and nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
                                padding=0, bias=False) or None
-    def forward(self, x_and_noise_mask):
-        x, noise_mask = x_and_noise_mask
+    def forward(self, x, noise_mask):
         if not self.equalInOut:
             x = self.relu1(dar_bn(self.bn1, x, noise_mask))
         else:
@@ -41,14 +40,17 @@ class BasicBlock(nn.Module):
 class NetworkBlock(nn.Module):
     def __init__(self, nb_layers, in_planes, out_planes, block, stride, dropRate=0.0):
         super(NetworkBlock, self).__init__()
-        self.layer = self._make_layer(block, in_planes, out_planes, nb_layers, stride, dropRate)
+        self.layers = self._make_layer(block, in_planes, out_planes, nb_layers, stride, dropRate)
     def _make_layer(self, block, in_planes, out_planes, nb_layers, stride, dropRate):
         layers = []
         for i in range(int(nb_layers)):
             layers.append(block(i == 0 and in_planes or out_planes, out_planes, i == 0 and stride or 1, dropRate))
-        return nn.Sequential(*layers)
-    def forward(self, x_and_noise_mask):
-        return self.layer(x_and_noise_mask)
+        return layers
+    def forward(self, x, noise_mask):
+        out = x
+        for layer in self.layers:
+            out = layer(out, noise_mask)
+        return out
 
 class WideResNet(nn.Module):
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
@@ -82,9 +84,9 @@ class WideResNet(nn.Module):
                 m.bias.data.zero_()
     def forward(self, x, noise_mask):
         out = self.conv1(x)
-        out = self.block1(tuple([out, noise_mask]))
-        out = self.block2(tuple([out, noise_mask]))
-        out = self.block3(tuple([out, noise_mask]))
+        out = self.block1(out, noise_mask)
+        out = self.block2(out, noise_mask)
+        out = self.block3(out, noise_mask)
         out = self.relu(dar_bn(self.bn1, out, noise_mask))
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
