@@ -92,7 +92,7 @@ class WideResNetDarBn(nn.Module):
         out = self.block1(out, noise_mask)
         out = self.block2(out, noise_mask)
         out = self.block3(out, noise_mask)
-        out = self.relu(dar_bn(self.bn1, out[0], noise_mask))
+        out = self.relu(dar_bn(self.bn1, out, noise_mask))
         out = F.avg_pool2d(out, 8)
         out = out.view(-1, self.nChannels)
         return self.fc(out)
