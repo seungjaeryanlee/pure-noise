@@ -1,5 +1,5 @@
 
-def train():
+def train(args):
     import torch
     from torchvision import transforms
 
@@ -86,8 +86,8 @@ def train():
 
     ## DataLoader
     # DataLoader Hyperparameters
-    DATALOADER__NUM_WORKERS = 8
-    DATALOADER__BATCH_SIZE = 128
+    DATALOADER__NUM_WORKERS = args.num_workers
+    DATALOADER__BATCH_SIZE = args.batch_size
 
     # Compute weights
     import json
@@ -132,7 +132,7 @@ def train():
     # Model hyperparameters
     MODEL__WIDERESNET_DEPTH = 28
     MODEL__WIDERESNET_K = 10
-    MODEL__WIDERESNET_DROPOUT = 0.3
+    MODEL__WIDERESNET_DROPOUT = args.dropout
 
     from networks_torchdistill import WideBasicBlock, WideResNet
 
@@ -141,6 +141,7 @@ def train():
         k=MODEL__WIDERESNET_K,
         dropout_p=MODEL__WIDERESNET_DROPOUT,
         block=WideBasicBlock,
+        # TODO: infer from dataset.
         num_classes=5,
     )
 
@@ -169,9 +170,9 @@ def train():
     # ## Optimizer
 
     # Optimizer Hyperparameters
-    OPTIM__LR = 0.1
-    OPTIM__MOMENTUM = 0.9
-    OPTIM__WEIGHT_DECAY = 2e-4
+    OPTIM__LR = args.lr
+    OPTIM__MOMENTUM = args.momentum
+    OPTIM__WEIGHT_DECAY = args.weight_decay
 
     import torch.optim as optim
 
@@ -187,21 +188,21 @@ def train():
         gamma=0.1,
     )
 
-    # ## Prepare Training
+    ## Prepare Training
 
     # Training Hyperparameters
-    N_EPOCH = 90
-    SAVE_CKPT_EVERY_N_EPOCH = 10
-    LOAD_CKPT = False
-    LOAD_CKPT_FILEPATH = "checkpoints/.pt"
-    LOAD_CKPT_EPOCH = 0
+    N_EPOCH = args.num_epochs
+    SAVE_CKPT_EVERY_N_EPOCH = args.save_ckpt_every_n_epoch
+    LOAD_CKPT = args.load_ckpt
+    LOAD_CKPT_FILEPATH = args.load_ckpt_filepath
+    LOAD_CKPT_EPOCH = args.load_ckpt_epoch
 
     import torch.nn as nn
 
     criterion = nn.CrossEntropyLoss(reduction="none")
 
 
-    # ## Training Loop
+    ## Training Loop
 
     def save_checkpoint(
         model,
@@ -359,4 +360,29 @@ def train():
     wandb_run.finish()
 
 if __name__ == '__main__':
-    train()
+    import argparse
+
+    parser = argparse.ArgumentParser()
+
+    # DataLoader
+    parser.add_argument('--num_workers', default=8, type=int)
+    parser.add_argument('--batch_size', default=128, type=int)
+
+    # Model
+    # parser.add_argument('--model', default='WideResNet32', choices=[], type=str)
+    parser.add_argument('--dropout', default=0.3, type=float)
+
+    # Optimizer
+    parser.add_argument('--lr', default=0.1, type=float)
+    parser.add_argument('--momentum', default=0.9, type=float)
+    parser.add_argument('--weight_decay', default=2e-4, type=float)
+
+    # Training
+    parser.add_argument('--num_epochs', default=200, type=int)
+    parser.add_argument('--save_ckpt_every_n_epoch', default=10, type=int)
+    parser.add_argument('--load_ckpt', default=False, type=bool)
+    parser.add_argument('--load_ckpt_filepath', default='checkpoints/.pt', type=str)
+    parser.add_argument('--load_ckpt_epoch', default=0, type=int)
+
+    args = parser.parse_args()
+    train(args)
