@@ -95,7 +95,7 @@ class CifarResNet(nn.Module):
   ResNet optimized for the Cifar dataset, as specified in
   https://arxiv.org/abs/1512.03385.pdf
   """
-  def __init__(self, block, depth, num_classes, normalized=False, gray=False):
+  def __init__(self, block, depth, num_classes, normalized=False, gray=False, return_hidden_layer_logits=True):
     """ Constructor
     Args:
       depth: number of layers.
@@ -141,6 +141,8 @@ class CifarResNet(nn.Module):
         init.kaiming_normal_(m.weight)
         m.bias.data.zero_()
 
+    self.return_hidden_layer_logits = return_hidden_layer_logits
+
   def _make_layer(self, block, planes, blocks, stride=1):
     downsample = None
     if stride != 1 or self.inplanes != planes * block.expansion:
@@ -162,8 +164,10 @@ class CifarResNet(nn.Module):
     x = self.stage_3(x3)
     x = self.avgpool(x)
     x = x.view(x.size(0), -1)
-    return self.linear(x), [x1, x2, x3, x]
-
+    if self.return_hidden_layer_logits:
+      return self.linear(x), [x1, x2, x3, x]
+    else:
+      return self.linear(x)
 
 def resnet20(num_classes=10):
   """Constructs a ResNet-20 model for CIFAR-10 (by default)
@@ -173,12 +177,12 @@ def resnet20(num_classes=10):
   model = CifarResNet(ResNetBasicblock, 20, num_classes)
   return model
 
-def resnet32(num_classes=10):
+def resnet32(num_classes=10, return_hidden_layer_logits=False):
   """Constructs a ResNet-32 model for CIFAR-10 (by default)
   Args:
     num_classes (uint): number of classes
   """
-  model = CifarResNet(ResNetBasicblock, 32, num_classes)
+  model = CifarResNet(ResNetBasicblock, 32, num_classes, return_hidden_layer_logits=return_hidden_layer_logits)
   return model
 
 def resnet32_norm(num_classes=10):

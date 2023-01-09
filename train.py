@@ -178,40 +178,41 @@ def train(args):
     if LOAD_CKPT:
         load_checkpoint(net, optimizer, LOAD_CKPT_FILEPATH)
 
-    ## Wandb
-    import wandb
-    wandb.login()
+    # Wandb
+    if args.enable_wandb:
+        import wandb
+        wandb.login()
 
-    wandb_run = wandb.init(
-        project="pure-noise",
-        entity="brianryan",
-    )
+        wandb_run = wandb.init(
+            project="pure-noise",
+            entity="brianryan",
+        )
 
-    wandb.config.update({
-        # Data
-        "dataloader__num_workers": DATALOADER__NUM_WORKERS,
-        "dataloader__batch_size": DATALOADER__BATCH_SIZE,
-        "dataloader__use_oversampling": args.use_oversampling,
-        # Note: doesn't include final normalization. 
-        "dataloader__train_transform": args.train_transform,
-        "dataloader__valid_transform": args.valid_transform,
-        # Optimizer
-        "optim__lr": OPTIM__LR,
-        "optim__momentum": OPTIM__MOMENTUM,
-        "optim__weight_decay": OPTIM__WEIGHT_DECAY,
-        "optim__lr_decay": args.lr_decay,
-        "optim__lr_decay_epochs": args.lr_decay_epochs,
-        # Model
-        "model__name": args.model,
-        "model__dropout": args.dropout,
-        # Checkpoint
-        "save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
-        "load_ckpt": LOAD_CKPT,
-        "load_ckpt_filepath": LOAD_CKPT_FILEPATH,
-        "load_ckpt_epoch": LOAD_CKPT_EPOCH,
-        # Training
-        "n_epoch": N_EPOCH,
-    })
+        wandb.config.update({
+            # Data
+            "dataloader__num_workers": DATALOADER__NUM_WORKERS,
+            "dataloader__batch_size": DATALOADER__BATCH_SIZE,
+            "dataloader__use_oversampling": args.use_oversampling,
+            # Note: doesn't include final normalization. 
+            "dataloader__train_transform": args.train_transform,
+            "dataloader__valid_transform": args.valid_transform,
+            # Optimizer
+            "optim__lr": OPTIM__LR,
+            "optim__momentum": OPTIM__MOMENTUM,
+            "optim__weight_decay": OPTIM__WEIGHT_DECAY,
+            "optim__lr_decay": args.lr_decay,
+            "optim__lr_decay_epochs": args.lr_decay_epochs,
+            # Model
+            "model__name": args.model,
+            "model__dropout": args.dropout,
+            # Checkpoint
+            "save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
+            "load_ckpt": LOAD_CKPT,
+            "load_ckpt_filepath": LOAD_CKPT_FILEPATH,
+            "load_ckpt_epoch": LOAD_CKPT_EPOCH,
+            # Training
+            "n_epoch": N_EPOCH,
+        })
 
     ######################################### Training #########################################
 
@@ -304,23 +305,26 @@ def train(args):
         }
 
         # Logging
-        wandb.log({
-            "epoch_i": epoch_i,
-            "train_loss": np.mean(train_losses),
-            "train_acc": np.mean(train_preds == train_labels),
-            **train_loss_per_class_dict,
-            **train_acc_per_class_dict,
-            "valid_loss": np.mean(valid_losses),
-            "valid_acc": np.mean(valid_preds == valid_labels),
-            **valid_loss_per_class_dict,
-            **valid_acc_per_class_dict,
-            "lr": optimizer.param_groups[0]['lr'],
-        })
+        if args.enable_wandb:
+            wandb.log({
+                "epoch_i": epoch_i,
+                "train_loss": np.mean(train_losses),
+                "train_acc": np.mean(train_preds == train_labels),
+                **train_loss_per_class_dict,
+                **train_acc_per_class_dict,
+                "valid_loss": np.mean(valid_losses),
+                "valid_acc": np.mean(valid_preds == valid_labels),
+                **valid_loss_per_class_dict,
+                **valid_acc_per_class_dict,
+                "lr": optimizer.param_groups[0]['lr'],
+            })
+        
         if epoch_i in args.lr_decay_epochs:
             scheduler.step()
 
     # Finish wandb run
-    wandb_run.finish()
+    if args.enable_wandb:
+        wandb_run.finish()
 
 if __name__ == '__main__':
     import argparse
@@ -353,6 +357,9 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', default=2e-4, type=float)
     parser.add_argument('--lr_decay', default=0.1, type=float)
     parser.add_argument('--lr_decay_epochs', default=[30, 60], type=int, nargs='*')
+
+    # Logging
+    parser.add_argument('--enable_wandb', default=True, type=bool)
 
     # Checkpoint
     parser.add_argument('--enable_checkpoint', default=False, type=bool)
