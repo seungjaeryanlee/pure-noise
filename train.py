@@ -17,38 +17,21 @@ def train(args):
     ## Find dataset statistics with and without augmentation.
     # import custom_transforms
 
-    # TODO: argparse.
-    train_transform = [
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomCrop(32, padding=4),
-        transforms.ToTensor(),
-        # custom_transforms.Cutout(n_holes=1, length=16),
-        # # TODO: Check if this is correct values for SIMCLR augmentation
-        # transforms.RandomApply([
-        #     transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-        # ], p=0.8),
-        # transforms.RandomGrayscale(p=0.2),
-        # transforms.RandomApply([
-        #     transforms.GaussianBlur(kernel_size=3, sigma=[.1, 2.])
-        # ], p=0.5),
-    ]
-    valid_transform = [
-        transforms.ToTensor(),
-    ]
+    import inspect
+    transforms_name_to_class = {k: v for k, v in inspect.getmembers(transforms) if inspect.isclass(v)}
+    train_transform = eval(args.train_transform, transforms_name_to_class)
+    valid_transform = eval(args.valid_transform, transforms_name_to_class)
 
     from datasets.dataset_statistics import dataset_mean_and_std
-
     def train_mean_and_std():
         dataset = build_train_dataset(transforms.Compose(train_transform))
         return dataset_mean_and_std(dataset)
-    
-    train_dataset_mean, train_dataset_std = train_mean_and_std()
-    print(f'Train dataset mean: {train_dataset_mean} std: {train_dataset_std}')
-
     def valid_mean_and_std():
         dataset = build_valid_dataset(transforms.Compose(valid_transform))
         return dataset_mean_and_std(dataset)
     
+    train_dataset_mean, train_dataset_std = train_mean_and_std()
+    print(f'Train dataset mean: {train_dataset_mean} std: {train_dataset_std}')
     valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
     print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
 
@@ -62,6 +45,7 @@ def train(args):
             valid_transform + [transforms.Normalize(valid_dataset_mean, valid_dataset_std)]
         )
     )
+    
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
     ######################################### DataLoader ############################################
@@ -344,6 +328,10 @@ if __name__ == '__main__':
 
     # Dataset
     parser.add_argument('--dataset', default='CelebA-5', choices=['CIFAR-10-LT', 'CelebA-5'], type=str)
+    parser.add_argument('--train_transform',
+                        default='[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]', 
+                        type=str)
+    parser.add_argument('--valid_transform', default='[ToTensor()]', type=str)
 
     # DataLoader
     parser.add_argument('--num_workers', default=8, type=int)
