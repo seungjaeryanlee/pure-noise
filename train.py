@@ -155,7 +155,7 @@ def train(args):
     scheduler = optim.lr_scheduler.StepLR(
         optimizer,
         step_size=1,
-        gamma=0.1,
+        gamma=args.lr_decay,
     )
 
     ######################################### Loss #########################################
@@ -171,8 +171,6 @@ def train(args):
     LOAD_CKPT = args.load_ckpt
     LOAD_CKPT_FILEPATH = args.load_ckpt_filepath
     LOAD_CKPT_EPOCH = args.load_ckpt_epoch
-
-    ## Training Loop
 
     def save_checkpoint(
         model,
@@ -211,20 +209,24 @@ def train(args):
         # Data
         "dataloader__num_workers": DATALOADER__NUM_WORKERS,
         "dataloader__batch_size": DATALOADER__BATCH_SIZE,
+        "dataloader__use_oversampling": args.use_oversampling,
         # Optimizer
         "optim__lr": OPTIM__LR,
         "optim__momentum": OPTIM__MOMENTUM,
         "optim__weight_decay": OPTIM__WEIGHT_DECAY,
+        "optim__lr_decay": args.lr_decay,
+        "optim__lr_decay_epochs": args.lr_decay_epochs,
         # Model
         "model__wideresnet_depth": MODEL__WIDERESNET_DEPTH,
         "model__wideresnet_k": MODEL__WIDERESNET_K,
         "model__wideresnet_dropout": MODEL__WIDERESNET_DROPOUT,
-        # Training
-        "n_epoch": N_EPOCH,
+        # Checkpoint
         "save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
         "load_ckpt": LOAD_CKPT,
         "load_ckpt_filepath": LOAD_CKPT_FILEPATH,
         "load_ckpt_epoch": LOAD_CKPT_EPOCH,
+        # Training
+        "n_epoch": N_EPOCH,
     })
 
     ######################################### Training #########################################
@@ -329,7 +331,7 @@ def train(args):
             **valid_acc_per_class_dict,
             "lr": optimizer.param_groups[0]['lr'],
         })
-        if epoch_i in [30, 60]:
+        if epoch_i in args.lr_decay_epochs:
             scheduler.step()
 
     # Finish wandb run
@@ -349,20 +351,24 @@ if __name__ == '__main__':
     parser.add_argument('--use_oversampling', default=False, type=bool)
 
     # Model
-    # parser.add_argument('--model', default='WideResNet32', choices=[], type=str)
+    parser.add_argument('--model', default='WideResNet-32', choices=['WideResNet-32', 'ResNet-32'], type=str)
     parser.add_argument('--dropout', default=0.3, type=float)
 
     # Optimizer
     parser.add_argument('--lr', default=0.1, type=float)
     parser.add_argument('--momentum', default=0.9, type=float)
     parser.add_argument('--weight_decay', default=2e-4, type=float)
+    parser.add_argument('--lr_decay', default=0.1, type=float)
+    parser.add_argument('--lr_decay_epochs', default=[30, 60], type=int, nargs='*')
 
-    # Training
-    parser.add_argument('--num_epochs', default=200, type=int)
+    # Checkpoint
     parser.add_argument('--save_ckpt_every_n_epoch', default=10, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
     parser.add_argument('--load_ckpt_filepath', default='checkpoints/.pt', type=str)
     parser.add_argument('--load_ckpt_epoch', default=0, type=int)
+
+    # Training
+    parser.add_argument('--num_epochs', default=200, type=int)
 
     args = parser.parse_args()
     train(args)
