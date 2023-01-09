@@ -1,20 +1,10 @@
 
 ## ERM
 ```
-python train.py \ 
---dataset CelebA-5 \
---train_transform '[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]' \
---use_oversampling False \
---model WideResNet-28-10 \
---num_epochs 90 \
+python train.py --dataset CelebA-5 --num_epochs 90 --model ResNet-32-m2m --use_oversampling False
 ```
 
 ## Oversampling
 ```
-python train.py \ 
---dataset CelebA-5 \
---train_transform '[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]' \
---use_oversampling True \
---model WideResNet-28-10 \
---num_epochs 90 \
+python train.py --dataset CelebA-5 --num_epochs 90 --model ResNet-32-m2m --use_oversampling True
 ```
