@@ -351,7 +351,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_oversampling', default=False, type=bool)
 
     # Model
-    parser.add_argument('--model', default='WideResNet-32', choices=['WideResNet-32', 'ResNet-32'], type=str)
+    parser.add_argument('--model', default='WideResNet-28-10', choices=['WideResNet-28-10', 'ResNet-32'], type=str)
     parser.add_argument('--dropout', default=0.3, type=float)
 
     # Optimizer
