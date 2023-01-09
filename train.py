@@ -1,121 +1,98 @@
 
 def train(args):
     import torch
-    from torchvision import transforms
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-    ## Dataset
-    from datasets.celeba5 import CelebA5Dataset
-    TRAIN_DIR = "data/CelebA5_64x64/train"
-    VALID_DIR = "data/CelebA5_64x64/valid"
+    ######################################### Dataset ############################################
+    from torchvision import transforms
 
-    shared_transforms = [
-        transforms.ConvertImageDtype(torch.float32),
-    ]
+    if args.dataset == 'CelebA-5':
+        NUM_CLASSES = 5
+        
+        from datasets.celeba5 import build_train_dataset, build_valid_dataset
+        train_dataset_builder = build_train_dataset
+        valid_dataset_builder = build_valid_dataset
 
-    import custom_transforms
+    ## Find dataset statistics with and without augmentation.
+    # import custom_transforms
 
-    # transforms.ToTensor() not needed as we use torchvision.io.read_image,
-    # which gives torch.Tensor instead of PIL.Image
-    # Data Augmentation transforms are mostly from Bazinga699/NCL
-    # https://github.com/Bazinga699/NCL/blob/2bbf193/lib/dataset/cui_cifar.py#L64
-    augmentation_transforms = [
+    # TODO: argparse.
+    train_transform = [
         transforms.RandomHorizontalFlip(),
-        transforms.RandomCrop(64, padding=4),
-        custom_transforms.Cutout(n_holes=1, length=16),
-        # TODO: Check if this is correct values for SIMCLR augmentation
-        transforms.RandomApply([
-            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
-        ], p=0.8),
-        transforms.RandomGrayscale(p=0.2),
-        transforms.RandomApply([
-            transforms.GaussianBlur(kernel_size=3, sigma=[.1, 2.])
-        ], p=0.5),
+        transforms.RandomCrop(32, padding=4),
+        transforms.ToTensor(),
+        # custom_transforms.Cutout(n_holes=1, length=16),
+        # # TODO: Check if this is correct values for SIMCLR augmentation
+        # transforms.RandomApply([
+        #     transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+        # ], p=0.8),
+        # transforms.RandomGrayscale(p=0.2),
+        # transforms.RandomApply([
+        #     transforms.GaussianBlur(kernel_size=3, sigma=[.1, 2.])
+        # ], p=0.5),
+    ]
+    valid_transform = [
+        transforms.ToTensor(),
     ]
 
-    def dataset_mean_and_std(dataset):
-        imgs = torch.stack([img for img, _ in dataset]).type(torch.FloatTensor)
-        dataset_mean = imgs.mean(dim=[0,2,3]).to(device)
-        dataset_std = imgs.std(dim=[0,2,3]).to(device)
-        return dataset_mean.tolist(), dataset_std.tolist()
+    from datasets.dataset_statistics import dataset_mean_and_std
 
-    def no_aug_train_stats():
-        dataset = CelebA5Dataset(
-            dataset_path=TRAIN_DIR,
-            # transform=transforms.Compose(shared_transforms),
-        )
+    def train_mean_and_std():
+        dataset = build_train_dataset(transforms.Compose(train_transform))
         return dataset_mean_and_std(dataset)
+    
+    train_dataset_mean, train_dataset_std = train_mean_and_std()
+    print(f'Train dataset mean: {train_dataset_mean} std: {train_dataset_std}')
 
-    no_aug_train_mean, no_aug_train_std = no_aug_train_stats()
-    # no_aug_train_mean, no_aug_train_std = [0.5037, 0.4335, 0.3993], [0.3053, 0.2887, 0.2890]
-
-    print(no_aug_train_mean, no_aug_train_std)
-
-    def aug_train_stats():
-        dataset = CelebA5Dataset(
-            dataset_path=TRAIN_DIR,
-            transform=transforms.Compose(shared_transforms + augmentation_transforms),
-        )
+    def valid_mean_and_std():
+        dataset = build_valid_dataset(transforms.Compose(valid_transform))
         return dataset_mean_and_std(dataset)
+    
+    valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
+    print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
 
-    # aug_train_mean, aug_train_std = aug_train_stats()
-    aug_train_mean, aug_train_std = [0.4273, 0.3827, 0.3593], [0.3181, 0.3019, 0.2954]
-
-    print(aug_train_mean, aug_train_std)
-
-
-    train_transform = transforms.Compose(
-        # shared_transforms + augmentation_transforms + [transforms.Normalize(no_aug_train_mean, no_aug_train_std)]
-        shared_transforms + [transforms.Normalize(no_aug_train_mean, no_aug_train_std)]
+    train_dataset = build_train_dataset(
+        transform=transforms.Compose(
+            train_transform + [transforms.Normalize(train_dataset_mean, train_dataset_std)]
+        )
     )
-    valid_transform = transforms.Compose(
-        shared_transforms + [transforms.Normalize(no_aug_train_mean, no_aug_train_std)]
+    valid_dataset = build_valid_dataset(
+        transform=transforms.Compose(
+            valid_transform + [transforms.Normalize(valid_dataset_mean, valid_dataset_std)]
+        )
     )
-    train_dataset = CelebA5Dataset(
-        dataset_path=TRAIN_DIR,
-        transform=train_transform,
-    )
-    valid_dataset = CelebA5Dataset(
-        dataset_path=VALID_DIR,
-        transform=valid_transform,
-    )
+    print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
-    len(train_dataset), len(valid_dataset)
-
-
-    ## DataLoader
+    ######################################### DataLoader ############################################
+    
     # DataLoader Hyperparameters
     DATALOADER__NUM_WORKERS = args.num_workers
     DATALOADER__BATCH_SIZE = args.batch_size
 
     # Compute weights
-    import json
-    import os
     import numpy as np
 
     sample_labels = []
-    sample_labels_count = np.arange(5)
-    with open(os.path.join(TRAIN_DIR, 'labels.txt'), 'r') as f:
-        for line in f:
-            _, label = line.split()
-            label = int(label)
-            sample_labels.append(label)
-            sample_labels_count[label] += 1
+    sample_labels_count = np.arange(NUM_CLASSES)
+    for _, label in train_dataset:
+        sample_labels.append(label)
+        sample_labels_count[label] += 1
     weights = 1. / sample_labels_count
     sample_weights = np.array([weights[l] for l in sample_labels])
+    print(f'Class weights: {weights}')
 
     from torch.utils.data import DataLoader, WeightedRandomSampler
 
     train_sampler = WeightedRandomSampler(
         weights=sample_weights,
-        num_samples=6651, # https://stackoverflow.com/a/67802529
+        num_samples=len(train_dataset), # https://stackoverflow.com/a/67802529
         replacement=True,
     )
     train_loader = DataLoader(
         train_dataset,
-        # sampler=train_sampler,
-        shuffle=True,
+        sampler=train_sampler if args.use_oversampling else None,
+        shuffle=False if args.use_oversampling else True,
         batch_size=DATALOADER__BATCH_SIZE,
         num_workers=DATALOADER__NUM_WORKERS,
     )
@@ -126,8 +103,7 @@ def train(args):
         num_workers=DATALOADER__NUM_WORKERS,
     )
 
-
-    ## Model
+    ######################################### Model #########################################
 
     # Model hyperparameters
     MODEL__WIDERESNET_DEPTH = 28
@@ -142,7 +118,7 @@ def train(args):
         dropout_p=MODEL__WIDERESNET_DROPOUT,
         block=WideBasicBlock,
         # TODO: infer from dataset.
-        num_classes=5,
+        num_classes=NUM_CLASSES,
     )
 
     # from networks import WideResNet
@@ -364,9 +340,13 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
+    # Dataset
+    parser.add_argument('--dataset', default='CelebA-5', choices=['CIFAR-10-LT', 'CelebA-5'], type=str)
+
     # DataLoader
     parser.add_argument('--num_workers', default=8, type=int)
     parser.add_argument('--batch_size', default=128, type=int)
+    parser.add_argument('--use_oversampling', default=False, type=bool)
 
     # Model
     # parser.add_argument('--model', default='WideResNet32', choices=[], type=str)
