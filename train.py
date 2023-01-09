@@ -227,11 +227,11 @@ def train(args):
     for epoch_i in range(start_epoch_i, end_epoch_i):
         print(f'epoch: {epoch_i}')
         # Save checkpoint
-        if epoch_i % SAVE_CKPT_EVERY_N_EPOCH == 0:
-            checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
-            os.makedirs("checkpoints/", exist_ok=True)
-            save_checkpoint(net, optimizer, checkpoint_filepath)
-            wandb.save(checkpoint_filepath)
+        # if epoch_i % SAVE_CKPT_EVERY_N_EPOCH == 0:
+        #     checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
+        #     os.makedirs("checkpoints/", exist_ok=True)
+        #     save_checkpoint(net, optimizer, checkpoint_filepath)
+        #     wandb.save(checkpoint_filepath)
 
         ## Training Phase
         net.train()
