@@ -276,12 +276,12 @@ def train(args):
         # Filter losses by classes
         train_loss_per_class_dict = {
             f"train_loss__class_{class_}": train_losses[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(5)
+            for class_ in np.arange(NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         train_acc_per_class_dict = {
             f"train_acc__class_{class_}": (train_preds == train_labels)[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(5)
+            for class_ in np.arange(NUM_CLASSES)
         }
 
         ## Validation Phase
@@ -310,12 +310,12 @@ def train(args):
         # Filter losses by classes
         valid_loss_per_class_dict = {
             f"valid_loss__class_{class_}": valid_losses[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(5)
+            for class_ in np.arange(NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         valid_acc_per_class_dict = {
             f"valid_acc__class_{class_}": (valid_preds == valid_labels)[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(5)
+            for class_ in np.arange(NUM_CLASSES)
         }
 
         # Logging
