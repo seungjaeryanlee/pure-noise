@@ -117,9 +117,10 @@ def train(args):
         k=MODEL__WIDERESNET_K,
         dropout_p=MODEL__WIDERESNET_DROPOUT,
         block=WideBasicBlock,
-        # TODO: infer from dataset.
         num_classes=NUM_CLASSES,
     )
+
+    net = net.to(device)
 
     # from networks import WideResNet
 
@@ -134,16 +135,9 @@ def train(args):
     def count_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-    count_parameters(net)
+    print(f'Model parameter count: {count_parameters(net)}')
 
-    net = net.to(device)
-
-
-    ## Wandb
-    import wandb
-    wandb.login()
-
-    # ## Optimizer
+    ######################################### Optimizer #########################################
 
     # Optimizer Hyperparameters
     OPTIM__LR = args.lr
@@ -164,7 +158,12 @@ def train(args):
         gamma=0.1,
     )
 
-    ## Prepare Training
+    ######################################### Loss #########################################
+    import torch.nn as nn
+
+    criterion = nn.CrossEntropyLoss(reduction="none")
+
+    ######################################### Logging & Checkpoint #########################################
 
     # Training Hyperparameters
     N_EPOCH = args.num_epochs
@@ -172,11 +171,6 @@ def train(args):
     LOAD_CKPT = args.load_ckpt
     LOAD_CKPT_FILEPATH = args.load_ckpt_filepath
     LOAD_CKPT_EPOCH = args.load_ckpt_epoch
-
-    import torch.nn as nn
-
-    criterion = nn.CrossEntropyLoss(reduction="none")
-
 
     ## Training Loop
 
@@ -204,6 +198,10 @@ def train(args):
     if LOAD_CKPT:
         load_checkpoint(net, optimizer, LOAD_CKPT_FILEPATH)
 
+    ## Wandb
+    import wandb
+    wandb.login()
+
     wandb_run = wandb.init(
         project="pure-noise",
         entity="brianryan",
@@ -228,6 +226,8 @@ def train(args):
         "load_ckpt_filepath": LOAD_CKPT_FILEPATH,
         "load_ckpt_epoch": LOAD_CKPT_EPOCH,
     })
+
+    ######################################### Training #########################################
 
     from collections import defaultdict
     import os
