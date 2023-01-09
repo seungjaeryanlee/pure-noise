@@ -89,32 +89,30 @@ def train(args):
 
     ######################################### Model #########################################
 
-    # Model hyperparameters
-    MODEL__WIDERESNET_DEPTH = 28
-    MODEL__WIDERESNET_K = 10
-    MODEL__WIDERESNET_DROPOUT = args.dropout
-
-    from networks_torchdistill import WideBasicBlock, WideResNet
-
-    net = WideResNet(
-        depth=MODEL__WIDERESNET_DEPTH,
-        k=MODEL__WIDERESNET_K,
-        dropout_p=MODEL__WIDERESNET_DROPOUT,
-        block=WideBasicBlock,
-        num_classes=NUM_CLASSES,
-    )
+    net = None
+    if args.model == 'WideResNet-28-10-torchdistill':
+        from networks_torchdistill import WideBasicBlock, WideResNet
+        net = WideResNet(
+            depth=28,
+            k=10,
+            dropout_p=args.dropout,
+            block=WideBasicBlock,
+            num_classes=NUM_CLASSES,
+        )
+    elif args.model == 'WideResNet-28-10-xternalz':
+        from networks import WideResNet
+        net = WideResNet(
+            depth=28,
+            widen_factor=10,
+            dropRate=args.dropout,
+            num_classes=NUM_CLASSES,
+        )
+    elif args.model == 'ResNet-32-m2m':
+        from models.resnet32 import resnet32
+        # TODO: Dropout?
+        net = resnet32(num_classes=NUM_CLASSES)
 
     net = net.to(device)
-
-    # from networks import WideResNet
-
-    # # TODO: Consider replacing with https://github.com/yoshitomo-matsubara/torchdistill/blob/main/torchdistill/models/classification/wide_resnet.py
-    # net = WideResNet(
-    #     num_classes=10,
-    #     depth=MODEL__WIDERESNET_DEPTH,
-    #     widen_factor=MODEL__WIDERESNET_K,
-    #     dropRate=MODEL__WIDERESNET_DROPOUT,
-    # )
 
     def count_parameters(model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -194,6 +192,9 @@ def train(args):
         "dataloader__num_workers": DATALOADER__NUM_WORKERS,
         "dataloader__batch_size": DATALOADER__BATCH_SIZE,
         "dataloader__use_oversampling": args.use_oversampling,
+        # Note: doesn't include final normalization. 
+        "dataloader__train_transform": args.train_transform,
+        "dataloader__valid_transform": args.valid_transform,
         # Optimizer
         "optim__lr": OPTIM__LR,
         "optim__momentum": OPTIM__MOMENTUM,
@@ -201,9 +202,8 @@ def train(args):
         "optim__lr_decay": args.lr_decay,
         "optim__lr_decay_epochs": args.lr_decay_epochs,
         # Model
-        "model__wideresnet_depth": MODEL__WIDERESNET_DEPTH,
-        "model__wideresnet_k": MODEL__WIDERESNET_K,
-        "model__wideresnet_dropout": MODEL__WIDERESNET_DROPOUT,
+        "model__name": args.model,
+        "model__dropout": args.dropout,
         # Checkpoint
         "save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
         "load_ckpt": LOAD_CKPT,
@@ -227,11 +227,12 @@ def train(args):
     for epoch_i in range(start_epoch_i, end_epoch_i):
         print(f'epoch: {epoch_i}')
         # Save checkpoint
-        # if epoch_i % SAVE_CKPT_EVERY_N_EPOCH == 0:
-        #     checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
-        #     os.makedirs("checkpoints/", exist_ok=True)
-        #     save_checkpoint(net, optimizer, checkpoint_filepath)
-        #     wandb.save(checkpoint_filepath)
+        # TODO: fix checkpoint error.
+        if args.enable_checkpoint and (epoch_i % SAVE_CKPT_EVERY_N_EPOCH == 0):
+            checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
+            os.makedirs("checkpoints/", exist_ok=True)
+            save_checkpoint(net, optimizer, checkpoint_filepath)
+            wandb.save(checkpoint_filepath)
 
         ## Training Phase
         net.train()
@@ -339,7 +340,11 @@ if __name__ == '__main__':
     parser.add_argument('--use_oversampling', default=False, type=bool)
 
     # Model
-    parser.add_argument('--model', default='WideResNet-28-10', choices=['WideResNet-28-10', 'ResNet-32'], type=str)
+    parser.add_argument('--model', default='WideResNet-28-10', choices=[
+        'WideResNet-28-10-torchdistill', 
+        'WideResNet-28-10-xternalz', 
+        'ResNet-32-m2m'], 
+        type=str)
     parser.add_argument('--dropout', default=0.3, type=float)
 
     # Optimizer
@@ -350,6 +355,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr_decay_epochs', default=[30, 60], type=int, nargs='*')
 
     # Checkpoint
+    parser.add_argument('--enable_checkpoint', default=False, type=bool)
     parser.add_argument('--save_ckpt_every_n_epoch', default=10, type=int)
     parser.add_argument('--load_ckpt', default=False, type=bool)
     parser.add_argument('--load_ckpt_filepath', default='checkpoints/.pt', type=str)
