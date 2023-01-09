@@ -344,7 +344,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_oversampling', default=False, type=bool)
 
     # Model
-    parser.add_argument('--model', default='WideResNet-28-10', choices=[
+    parser.add_argument('--model', default='WideResNet-28-10-torchdistill', choices=[
         'WideResNet-28-10-torchdistill', 
         'WideResNet-28-10-xternalz', 
         'ResNet-32-m2m'], 
