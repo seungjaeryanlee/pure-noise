@@ -190,6 +190,7 @@ def train(args):
             # Note: doesn't include final normalization. 
             "dataloader__train_transform": args.train_transform,
             "dataloader__valid_transform": args.valid_transform,
+            "dataloader__normalize_using_train_stats": args.normalize_using_train_stats,
             # Optimizer
             "optim__lr": OPTIM__LR,
             "optim__momentum": OPTIM__MOMENTUM,
