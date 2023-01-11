@@ -332,7 +332,7 @@ if __name__ == '__main__':
                         default='[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]', 
                         type=str)
     parser.add_argument('--valid_transform', default='[ToTensor()]', type=str)
-    parser.add_argument('--normalize_using_train_stats', default=True, type=bool)
+    parser.add_argument('--normalize_using_train_stats', default=False, type=bool)
 
     # DataLoader
     parser.add_argument('--num_workers', default=8, type=int)
@@ -340,10 +340,10 @@ if __name__ == '__main__':
     parser.add_argument('--use_oversampling', default=False, type=bool)
 
     # Model
-    parser.add_argument('--model', default='WideResNet-28-10-torchdistill', choices=[
-        'WideResNet-28-10-torchdistill', 
-        'WideResNet-28-10-xternalz', 
-        'ResNet-32-m2m'], 
+    parser.add_argument('--model', default='ResNet-32-m2m', choices=[
+        'WideResNet-28-10-torchdistill',
+        'WideResNet-28-10-xternalz',
+        'ResNet-32-m2m'],
         type=str)
     parser.add_argument('--dropout', default=0.3, type=float)
 
@@ -365,7 +365,7 @@ if __name__ == '__main__':
     parser.add_argument('--load_ckpt_epoch', default=0, type=int)
 
     # Training
-    parser.add_argument('--num_epochs', default=200, type=int)
+    parser.add_argument('--num_epochs', default=90, type=int)
 
     args = parser.parse_args()
     train(args)
