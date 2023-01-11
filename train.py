@@ -35,7 +35,8 @@ def train(args):
     valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
     print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
 
-    mean, std = train_dataset_mean, train_dataset_std if args.normalize_using_train_stats else valid_dataset_mean, valid_dataset_std
+    mean = train_dataset_mean if args.normalize_using_train_stats else valid_dataset_mean
+    std = train_dataset_std if args.normalize_using_train_stats else valid_dataset_std
     train_dataset = build_train_dataset(transform=transforms.Compose(train_transform + [transforms.Normalize(mean, std)]))
     valid_dataset = build_valid_dataset(transform=transforms.Compose(valid_transform + [transforms.Normalize(mean, std)]))
     
