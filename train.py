@@ -35,16 +35,9 @@ def train(args):
     valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
     print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
 
-    train_dataset = build_train_dataset(
-        transform=transforms.Compose(
-            train_transform + [transforms.Normalize(train_dataset_mean, train_dataset_std)]
-        )
-    )
-    valid_dataset = build_valid_dataset(
-        transform=transforms.Compose(
-            valid_transform + [transforms.Normalize(valid_dataset_mean, valid_dataset_std)]
-        )
-    )
+    mean, std = train_dataset_mean, train_dataset_std if args.normalize_using_train_stats else valid_dataset_mean, valid_dataset_std
+    train_dataset = build_train_dataset(transform=transforms.Compose(train_transform + [transforms.Normalize(mean, std)]))
+    valid_dataset = build_valid_dataset(transform=transforms.Compose(valid_transform + [transforms.Normalize(mean, std)]))
     
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
@@ -337,6 +330,7 @@ if __name__ == '__main__':
                         default='[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]', 
                         type=str)
     parser.add_argument('--valid_transform', default='[ToTensor()]', type=str)
+    parser.add_argument('--normalize_using_train_stats', default=True, type=bool)
 
     # DataLoader
     parser.add_argument('--num_workers', default=8, type=int)
