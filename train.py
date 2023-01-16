@@ -35,16 +35,11 @@ def train(args):
     valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
     print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
 
-    train_dataset = build_train_dataset(
-        transform=transforms.Compose(
-            train_transform + [transforms.Normalize(train_dataset_mean, train_dataset_std)]
-        )
-    )
-    valid_dataset = build_valid_dataset(
-        transform=transforms.Compose(
-            valid_transform + [transforms.Normalize(valid_dataset_mean, valid_dataset_std)]
-        )
-    )
+    print(f'Normalize using train stats: {args.normalize_using_train_stats}')
+    mean = train_dataset_mean if args.normalize_using_train_stats else valid_dataset_mean
+    std = train_dataset_std if args.normalize_using_train_stats else valid_dataset_std
+    train_dataset = build_train_dataset(transform=transforms.Compose(train_transform + [transforms.Normalize(mean, std)]))
+    valid_dataset = build_valid_dataset(transform=transforms.Compose(valid_transform + [transforms.Normalize(mean, std)]))
     
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
@@ -139,6 +134,13 @@ def train(args):
         step_size=1,
         gamma=args.lr_decay,
     )
+    warmup_scheduler = None
+    if args.enable_linear_warmup:
+        warmup_scheduler = optim.lr_scheduler.LinearLR(
+                optimizer,
+                start_factor=0.2,
+                total_iters=4,
+                verbose=False)
 
     ######################################### Loss #########################################
     import torch.nn as nn
@@ -179,7 +181,7 @@ def train(args):
         load_checkpoint(net, optimizer, LOAD_CKPT_FILEPATH)
 
     # Wandb
-    if args.enable_wandb:
+    if not args.disable_wandb:
         import wandb
         wandb.login()
 
@@ -196,22 +198,24 @@ def train(args):
             # Note: doesn't include final normalization. 
             "dataloader__train_transform": args.train_transform,
             "dataloader__valid_transform": args.valid_transform,
+            "dataloader__normalize_using_train_stats": args.normalize_using_train_stats,
             # Optimizer
             "optim__lr": OPTIM__LR,
             "optim__momentum": OPTIM__MOMENTUM,
             "optim__weight_decay": OPTIM__WEIGHT_DECAY,
             "optim__lr_decay": args.lr_decay,
             "optim__lr_decay_epochs": args.lr_decay_epochs,
+            "optim__enable_linear_warmup": args.enable_linear_warmup,
             # Model
             "model__name": args.model,
             "model__dropout": args.dropout,
             # Checkpoint
-            "save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
-            "load_ckpt": LOAD_CKPT,
-            "load_ckpt_filepath": LOAD_CKPT_FILEPATH,
-            "load_ckpt_epoch": LOAD_CKPT_EPOCH,
+            "checkpoint__save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
+            "checkpoint__load_ckpt": LOAD_CKPT,
+            "checkpoint__load_ckpt_filepath": LOAD_CKPT_FILEPATH,
+            "checkpoint__load_ckpt_epoch": LOAD_CKPT_EPOCH,
             # Training
-            "n_epoch": N_EPOCH,
+            "training__n_epoch": N_EPOCH,
         })
 
     ######################################### Training #########################################
@@ -305,7 +309,7 @@ def train(args):
         }
 
         # Logging
-        if args.enable_wandb:
+        if not args.disable_wandb:
             wandb.log({
                 "epoch_i": epoch_i,
                 "train_loss": np.mean(train_losses),
@@ -319,11 +323,14 @@ def train(args):
                 "lr": optimizer.param_groups[0]['lr'],
             })
         
+        if args.enable_linear_warmup:
+            warmup_scheduler.step()
+        
         if epoch_i in args.lr_decay_epochs:
             scheduler.step()
 
     # Finish wandb run
-    if args.enable_wandb:
+    if not args.disable_wandb:
         wandb_run.finish()
 
 if __name__ == '__main__':
@@ -337,17 +344,18 @@ if __name__ == '__main__':
                         default='[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]', 
                         type=str)
     parser.add_argument('--valid_transform', default='[ToTensor()]', type=str)
+    parser.add_argument('--normalize_using_train_stats', default=False, action='store_true')
 
     # DataLoader
     parser.add_argument('--num_workers', default=8, type=int)
     parser.add_argument('--batch_size', default=128, type=int)
-    parser.add_argument('--use_oversampling', default=False, type=bool)
+    parser.add_argument('--use_oversampling', default=False, action='store_true')
 
     # Model
-    parser.add_argument('--model', default='WideResNet-28-10-torchdistill', choices=[
-        'WideResNet-28-10-torchdistill', 
-        'WideResNet-28-10-xternalz', 
-        'ResNet-32-m2m'], 
+    parser.add_argument('--model', default='ResNet-32-m2m', choices=[
+        'WideResNet-28-10-torchdistill',
+        'WideResNet-28-10-xternalz',
+        'ResNet-32-m2m'],
         type=str)
     parser.add_argument('--dropout', default=0.3, type=float)
 
@@ -357,19 +365,20 @@ if __name__ == '__main__':
     parser.add_argument('--weight_decay', default=2e-4, type=float)
     parser.add_argument('--lr_decay', default=0.1, type=float)
     parser.add_argument('--lr_decay_epochs', default=[30, 60], type=int, nargs='*')
+    parser.add_argument('--enable_linear_warmup', default=False, action='store_true')
 
     # Logging
-    parser.add_argument('--enable_wandb', default=True, type=bool)
+    parser.add_argument('--disable_wandb', default=True, action='store_false')
 
     # Checkpoint
-    parser.add_argument('--enable_checkpoint', default=False, type=bool)
+    parser.add_argument('--enable_checkpoint', default=False, action='store_true')
     parser.add_argument('--save_ckpt_every_n_epoch', default=10, type=int)
-    parser.add_argument('--load_ckpt', default=False, type=bool)
+    parser.add_argument('--load_ckpt', default=False, action='store_true')
     parser.add_argument('--load_ckpt_filepath', default='checkpoints/.pt', type=str)
     parser.add_argument('--load_ckpt_epoch', default=0, type=int)
 
     # Training
-    parser.add_argument('--num_epochs', default=200, type=int)
+    parser.add_argument('--num_epochs', default=90, type=int)
 
     args = parser.parse_args()
     train(args)
