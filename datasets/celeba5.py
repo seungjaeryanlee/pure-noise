@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import os
 from PIL import Image
@@ -23,6 +24,8 @@ class CelebA5Dataset(Dataset):
                 label = int(label)
                 self.img_path_and_labels.append((img_path, label))
 
+        self._set_sample_weights()
+
     def __len__(self):
         return len(self.img_path_and_labels)
 
@@ -32,6 +35,18 @@ class CelebA5Dataset(Dataset):
         out_img = self.transform(img) if self.transform else img
         out_label = self.target_transform(label) if self.target_transform else label
         return out_img, out_label
+
+    def _set_sample_weights(self):
+        sample_labels = []
+        sample_labels_count = np.arange(5)
+        for _, label in self:
+            sample_labels.append(label)
+            sample_labels_count[label] += 1
+        weights = 1. / sample_labels_count
+        sample_weights = np.array([weights[l] for l in sample_labels])
+        self.weights = weights
+        self.sample_weights = sample_weights
+
 
 def build_train_dataset(transform):
     return CelebA5Dataset(CELEBA5_TRAIN_DATASET_PATH, transform=transform)

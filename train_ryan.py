@@ -1,7 +1,11 @@
+"""
+To be deprecated: use train.py
+"""
 from collections import defaultdict
 import logging
 import os
 
+from omegaconf import OmegaConf
 import numpy as np
 import wandb
 
@@ -122,68 +126,43 @@ def _get_lr_scheduler(optimizer):
 
 
 def main():
-    # TODO (ryanlee): Use OmegaConf
-    DATALOADER__BATCH_SIZE = 128
-    DATALOADER__NUM_WORKERS = 8
-    OPTIM__LR = 0.1
-    OPTIM__MOMENTUM = 0.9
-    OPTIM__WEIGHT_DECAY = 2e-4
-    
-    # Training Hyperparameters
-    N_EPOCH = 200
-    SAVE_CKPT_EVERY_N_EPOCH = 10
-    LOAD_CKPT = False
-    LOAD_CKPT_FILEPATH = "checkpoints/.pt"
-    LOAD_CKPT_EPOCH = 0
+    DEFAULT_CONFIG = OmegaConf.load("default.yaml")
+    CLI_CONFIG = OmegaConf.from_cli()
+    CONFIG = OmegaConf.merge(DEFAULT_CONFIG, CLI_CONFIG)
 
     # Setup wandb
     wandb_run = wandb.init(
         project="pure-noise",
         entity="brianryan",
+        config=OmegaConf.to_container(CONFIG),
     )
-
-    wandb.config.update({
-        # Data
-        "dataloader__num_workers": DATALOADER__NUM_WORKERS,
-        "dataloader__batch_size": DATALOADER__BATCH_SIZE,
-        # Optimizer
-        "optim__lr": OPTIM__LR,
-        "optim__momentum": OPTIM__MOMENTUM,
-        "optim__weight_decay": OPTIM__WEIGHT_DECAY,
-        # Training
-        "n_epoch": N_EPOCH,
-        "save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
-        "load_ckpt": LOAD_CKPT,
-        "load_ckpt_filepath": LOAD_CKPT_FILEPATH,
-        "load_ckpt_epoch": LOAD_CKPT_EPOCH,
-    })
 
     # Setup components
     train_loader, valid_loader = _get_cifar10lt_dataloaders(
-        dataloader__batch_size=DATALOADER__BATCH_SIZE,
-        dataloader__num_workers=DATALOADER__NUM_WORKERS,
+        dataloader__batch_size=CONFIG.DATALOADER__BATCH_SIZE,
+        dataloader__num_workers=CONFIG.DATALOADER__NUM_WORKERS,
     )
     net = _get_resnet32_model()
     net = net.cuda()
     optimizer = _get_optimizer(
         net,
-        optim__lr=OPTIM__LR,
-        optim__momentum=OPTIM__MOMENTUM,
-        optim__weight_decay=OPTIM__WEIGHT_DECAY,
+        optim__lr=CONFIG.OPTIM__LR,
+        optim__momentum=CONFIG.OPTIM__MOMENTUM,
+        optim__weight_decay=CONFIG.OPTIM__WEIGHT_DECAY,
     )
     scheduler = _get_lr_scheduler(optimizer)
     criterion = nn.CrossEntropyLoss(reduction="none")
 
-    start_epoch_i, end_epoch_i = 0, N_EPOCH
-    if LOAD_CKPT:
-        load_checkpoint(net, optimizer, LOAD_CKPT_FILEPATH)
-        start_epoch_i += LOAD_CKPT_EPOCH
-        end_epoch_i += LOAD_CKPT_EPOCH
+    start_epoch_i, end_epoch_i = 0, CONFIG.N_EPOCH
+    if CONFIG.LOAD_CKPT:
+        load_checkpoint(net, optimizer, CONFIG.LOAD_CKPT_FILEPATH)
+        start_epoch_i += CONFIG.LOAD_CKPT_EPOCH
+        end_epoch_i += CONFIG.LOAD_CKPT_EPOCH
 
     # Training
     for epoch_i in range(start_epoch_i, end_epoch_i):
         # Save checkpoint
-        if epoch_i % SAVE_CKPT_EVERY_N_EPOCH == 0:
+        if epoch_i % CONFIG.SAVE_CKPT_EVERY_N_EPOCH == 0:
             checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
             os.makedirs("checkpoints/", exist_ok=True)
             save_checkpoint(net, optimizer, checkpoint_filepath)

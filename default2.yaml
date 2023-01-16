@@ -1,0 +1,35 @@
+# Dataset
+dataset: "CelebA-5" # "CIFAR-10-LT" or "CelebA-5"
+train_transform_repr: "[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]"
+valid_transform_repr: "[ToTensor()]"
+normalize_using_train_stats: False
+
+# DataLoader
+num_workers: 8
+batch_size: 128
+use_oversampling: False
+
+# Model
+model: "ResNet-32-m2m" # "ResNet-32-m2m" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
+dropout: 0.3
+
+# Optimizer
+lr: 0.1
+momentum: 0.9
+weight_decay: 2.0e-4
+lr_decay: 0.1
+lr_decay_epochs: [30, 60]
+enable_linear_warmup: False
+
+# Logging
+disable_wandb: True
+
+# Checkpoint
+enable_checkpoint: False
+save_ckpt_every_n_epoch: 10
+load_ckpt: False
+load_ckpt_filepath: "checkpoints/.pt"
+load_ckpt_epoch: 0
+
+# Training
+num_epochs: 90

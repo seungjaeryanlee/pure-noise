@@ -1,15 +1,41 @@
+from collections import defaultdict
+import os
 
-def train(args):
-    import torch
+import numpy as np
+from omegaconf import OmegaConf
 
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, WeightedRandomSampler
+
+from checkpointing import load_checkpoint, save_checkpoint
+from initializers import (
+    initialize_lr_scheduler,
+    initialize_model,
+    initialize_transforms,
+) 
+
+
+def train(CONFIG):
+    # Wandb
+    if not CONFIG.disable_wandb:
+        import wandb
+        wandb.login()
+        wandb_run = wandb.init(
+            project="pure-noise",
+            entity="brianryan",
+            config=OmegaConf.to_container(CONFIG),
+        )
+
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     ######################################### Dataset ############################################
     from torchvision import transforms
 
-    if args.dataset == 'CelebA-5':
+    if CONFIG.dataset == 'CelebA-5':
         NUM_CLASSES = 5
-        
+         
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
         train_dataset_builder = build_train_dataset
         valid_dataset_builder = build_valid_dataset
@@ -17,10 +43,8 @@ def train(args):
     ## Find dataset statistics with and without augmentation.
     # import custom_transforms
 
-    import inspect
-    transforms_name_to_class = {k: v for k, v in inspect.getmembers(transforms) if inspect.isclass(v)}
-    train_transform = eval(args.train_transform, transforms_name_to_class)
-    valid_transform = eval(args.valid_transform, transforms_name_to_class)
+    train_transform = initialize_transforms(CONFIG.train_transform_repr)
+    valid_transform = initialize_transforms(CONFIG.valid_transform_repr)
 
     from datasets.dataset_statistics import dataset_mean_and_std
     def train_mean_and_std():
@@ -29,211 +53,79 @@ def train(args):
     def valid_mean_and_std():
         dataset = build_valid_dataset(transforms.Compose(valid_transform))
         return dataset_mean_and_std(dataset)
-    
+
     train_dataset_mean, train_dataset_std = train_mean_and_std()
     print(f'Train dataset mean: {train_dataset_mean} std: {train_dataset_std}')
     valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
     print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
 
-    print(f'Normalize using train stats: {args.normalize_using_train_stats}')
-    mean = train_dataset_mean if args.normalize_using_train_stats else valid_dataset_mean
-    std = train_dataset_std if args.normalize_using_train_stats else valid_dataset_std
+    print(f'Normalize using train stats: {CONFIG.normalize_using_train_stats}')
+    mean = train_dataset_mean if CONFIG.normalize_using_train_stats else valid_dataset_mean
+    std = train_dataset_std if CONFIG.normalize_using_train_stats else valid_dataset_std
     train_dataset = build_train_dataset(transform=transforms.Compose(train_transform + [transforms.Normalize(mean, std)]))
     valid_dataset = build_valid_dataset(transform=transforms.Compose(valid_transform + [transforms.Normalize(mean, std)]))
-    
+
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
+    print(f"Train dataset class weights: {train_dataset.weights}")
 
     ######################################### DataLoader ############################################
-    
-    # DataLoader Hyperparameters
-    DATALOADER__NUM_WORKERS = args.num_workers
-    DATALOADER__BATCH_SIZE = args.batch_size
-
-    # Compute weights
-    import numpy as np
-
-    sample_labels = []
-    sample_labels_count = np.arange(NUM_CLASSES)
-    for _, label in train_dataset:
-        sample_labels.append(label)
-        sample_labels_count[label] += 1
-    weights = 1. / sample_labels_count
-    sample_weights = np.array([weights[l] for l in sample_labels])
-    print(f'Class weights: {weights}')
-
-    from torch.utils.data import DataLoader, WeightedRandomSampler
 
     train_sampler = WeightedRandomSampler(
-        weights=sample_weights,
+        weights=train_dataset.sample_weights,
         num_samples=len(train_dataset), # https://stackoverflow.com/a/67802529
         replacement=True,
     )
     train_loader = DataLoader(
         train_dataset,
-        sampler=train_sampler if args.use_oversampling else None,
-        shuffle=False if args.use_oversampling else True,
-        batch_size=DATALOADER__BATCH_SIZE,
-        num_workers=DATALOADER__NUM_WORKERS,
+        sampler=train_sampler if CONFIG.use_oversampling else None,
+        shuffle=False if CONFIG.use_oversampling else True,
+        batch_size=CONFIG.batch_size,
+        num_workers=CONFIG.num_workers,
     )
 
     valid_loader = DataLoader(
         valid_dataset,
-        batch_size=DATALOADER__BATCH_SIZE,
-        num_workers=DATALOADER__NUM_WORKERS,
+        batch_size=CONFIG.batch_size,
+        num_workers=CONFIG.num_workers,
     )
 
     ######################################### Model #########################################
 
-    net = None
-    if args.model == 'WideResNet-28-10-torchdistill':
-        from networks_torchdistill import WideBasicBlock, WideResNet
-        net = WideResNet(
-            depth=28,
-            k=10,
-            dropout_p=args.dropout,
-            block=WideBasicBlock,
-            num_classes=NUM_CLASSES,
-        )
-    elif args.model == 'WideResNet-28-10-xternalz':
-        from networks import WideResNet
-        net = WideResNet(
-            depth=28,
-            widen_factor=10,
-            dropRate=args.dropout,
-            num_classes=NUM_CLASSES,
-        )
-    elif args.model == 'ResNet-32-m2m':
-        from models.resnet32 import resnet32
-        # TODO: Dropout?
-        net = resnet32(num_classes=NUM_CLASSES)
-
+    net = initialize_model(model_name=CONFIG.model, num_classes=NUM_CLASSES)
     net = net.to(device)
-
-    def count_parameters(model):
-        return sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-    print(f'Model parameter count: {count_parameters(net)}')
 
     ######################################### Optimizer #########################################
 
-    # Optimizer Hyperparameters
-    OPTIM__LR = args.lr
-    OPTIM__MOMENTUM = args.momentum
-    OPTIM__WEIGHT_DECAY = args.weight_decay
-
-    import torch.optim as optim
-
     optimizer = optim.SGD(
         net.parameters(),
-        lr=OPTIM__LR,
-        momentum=OPTIM__MOMENTUM,
-        weight_decay=OPTIM__WEIGHT_DECAY,
+        lr=CONFIG.lr,
+        momentum=CONFIG.momentum,
+        weight_decay=CONFIG.weight_decay,
     )
-    scheduler = optim.lr_scheduler.StepLR(
+    scheduler = initialize_lr_scheduler(
         optimizer,
-        step_size=1,
-        gamma=args.lr_decay,
+        enable_linear_warmup=CONFIG.enable_linear_warmup,
+        lr_decay=CONFIG.lr_decay,
+        lr_decay_epochs=CONFIG.lr_decay_epochs,
     )
-    warmup_scheduler = None
-    if args.enable_linear_warmup:
-        warmup_scheduler = optim.lr_scheduler.LinearLR(
-                optimizer,
-                start_factor=0.2,
-                total_iters=4,
-                verbose=False)
 
     ######################################### Loss #########################################
-    import torch.nn as nn
 
     criterion = nn.CrossEntropyLoss(reduction="none")
 
-    ######################################### Logging & Checkpoint #########################################
-
-    # Training Hyperparameters
-    N_EPOCH = args.num_epochs
-    SAVE_CKPT_EVERY_N_EPOCH = args.save_ckpt_every_n_epoch
-    LOAD_CKPT = args.load_ckpt
-    LOAD_CKPT_FILEPATH = args.load_ckpt_filepath
-    LOAD_CKPT_EPOCH = args.load_ckpt_epoch
-
-    def save_checkpoint(
-        model,
-        optimizer,
-        checkpoint_filepath: str,
-    ):
-        torch.save({
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-        }, checkpoint_filepath)
-
-
-    def load_checkpoint(
-        model,
-        optimizer,
-        checkpoint_filepath: str,
-    ):
-        checkpoint = torch.load(checkpoint_filepath)
-        model.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-
-    if LOAD_CKPT:
-        load_checkpoint(net, optimizer, LOAD_CKPT_FILEPATH)
-
-    # Wandb
-    if not args.disable_wandb:
-        import wandb
-        wandb.login()
-
-        wandb_run = wandb.init(
-            project="pure-noise",
-            entity="brianryan",
-        )
-
-        wandb.config.update({
-            # Data
-            "dataloader__num_workers": DATALOADER__NUM_WORKERS,
-            "dataloader__batch_size": DATALOADER__BATCH_SIZE,
-            "dataloader__use_oversampling": args.use_oversampling,
-            # Note: doesn't include final normalization. 
-            "dataloader__train_transform": args.train_transform,
-            "dataloader__valid_transform": args.valid_transform,
-            "dataloader__normalize_using_train_stats": args.normalize_using_train_stats,
-            # Optimizer
-            "optim__lr": OPTIM__LR,
-            "optim__momentum": OPTIM__MOMENTUM,
-            "optim__weight_decay": OPTIM__WEIGHT_DECAY,
-            "optim__lr_decay": args.lr_decay,
-            "optim__lr_decay_epochs": args.lr_decay_epochs,
-            "optim__enable_linear_warmup": args.enable_linear_warmup,
-            # Model
-            "model__name": args.model,
-            "model__dropout": args.dropout,
-            # Checkpoint
-            "checkpoint__save_ckpt_every_n_epoch": SAVE_CKPT_EVERY_N_EPOCH,
-            "checkpoint__load_ckpt": LOAD_CKPT,
-            "checkpoint__load_ckpt_filepath": LOAD_CKPT_FILEPATH,
-            "checkpoint__load_ckpt_epoch": LOAD_CKPT_EPOCH,
-            # Training
-            "training__n_epoch": N_EPOCH,
-        })
-
     ######################################### Training #########################################
 
-    from collections import defaultdict
-    import os
-
-    import torch
-
-    start_epoch_i, end_epoch_i = 0, N_EPOCH
-    if LOAD_CKPT:
+    start_epoch_i, end_epoch_i = 0, CONFIG.num_epochs
+    if CONFIG.load_ckpt:
+        load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
         start_epoch_i += LOAD_CKPT_EPOCH
         end_epoch_i += LOAD_CKPT_EPOCH
+
     for epoch_i in range(start_epoch_i, end_epoch_i):
         print(f'epoch: {epoch_i}')
         # Save checkpoint
         # TODO: fix checkpoint error.
-        if args.enable_checkpoint and (epoch_i % SAVE_CKPT_EVERY_N_EPOCH == 0):
+        if CONFIG.enable_checkpoint and (epoch_i % CONFIG.save_ckpt_every_n_epoch == 0):
             checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
             os.makedirs("checkpoints/", exist_ok=True)
             save_checkpoint(net, optimizer, checkpoint_filepath)
@@ -309,7 +201,7 @@ def train(args):
         }
 
         # Logging
-        if not args.disable_wandb:
+        if not CONFIG.disable_wandb:
             wandb.log({
                 "epoch_i": epoch_i,
                 "train_loss": np.mean(train_losses),
@@ -322,63 +214,17 @@ def train(args):
                 **valid_acc_per_class_dict,
                 "lr": optimizer.param_groups[0]['lr'],
             })
-        
-        if args.enable_linear_warmup:
-            warmup_scheduler.step()
-        
-        if epoch_i in args.lr_decay_epochs:
-            scheduler.step()
+
+        scheduler.step()
 
     # Finish wandb run
-    if not args.disable_wandb:
+    if not CONFIG.disable_wandb:
         wandb_run.finish()
 
+
 if __name__ == '__main__':
-    import argparse
+    DEFAULT_CONFIG = OmegaConf.load("default2.yaml")
+    CLI_CONFIG = OmegaConf.from_cli()
+    CONFIG = OmegaConf.merge(DEFAULT_CONFIG, CLI_CONFIG)
 
-    parser = argparse.ArgumentParser()
-
-    # Dataset
-    parser.add_argument('--dataset', default='CelebA-5', choices=['CIFAR-10-LT', 'CelebA-5'], type=str)
-    parser.add_argument('--train_transform',
-                        default='[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]', 
-                        type=str)
-    parser.add_argument('--valid_transform', default='[ToTensor()]', type=str)
-    parser.add_argument('--normalize_using_train_stats', default=False, action='store_true')
-
-    # DataLoader
-    parser.add_argument('--num_workers', default=8, type=int)
-    parser.add_argument('--batch_size', default=128, type=int)
-    parser.add_argument('--use_oversampling', default=False, action='store_true')
-
-    # Model
-    parser.add_argument('--model', default='ResNet-32-m2m', choices=[
-        'WideResNet-28-10-torchdistill',
-        'WideResNet-28-10-xternalz',
-        'ResNet-32-m2m'],
-        type=str)
-    parser.add_argument('--dropout', default=0.3, type=float)
-
-    # Optimizer
-    parser.add_argument('--lr', default=0.1, type=float)
-    parser.add_argument('--momentum', default=0.9, type=float)
-    parser.add_argument('--weight_decay', default=2e-4, type=float)
-    parser.add_argument('--lr_decay', default=0.1, type=float)
-    parser.add_argument('--lr_decay_epochs', default=[30, 60], type=int, nargs='*')
-    parser.add_argument('--enable_linear_warmup', default=False, action='store_true')
-
-    # Logging
-    parser.add_argument('--disable_wandb', default=True, action='store_false')
-
-    # Checkpoint
-    parser.add_argument('--enable_checkpoint', default=False, action='store_true')
-    parser.add_argument('--save_ckpt_every_n_epoch', default=10, type=int)
-    parser.add_argument('--load_ckpt', default=False, action='store_true')
-    parser.add_argument('--load_ckpt_filepath', default='checkpoints/.pt', type=str)
-    parser.add_argument('--load_ckpt_epoch', default=0, type=int)
-
-    # Training
-    parser.add_argument('--num_epochs', default=90, type=int)
-
-    args = parser.parse_args()
-    train(args)
+    train(CONFIG)
