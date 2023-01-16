@@ -10,7 +10,7 @@ batch_size: 128
 use_oversampling: False
 
 # Model
-model: "ResNet-32-m2m" # "ResNet-32-m2m" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
+model: "ResNet-32-m2m" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
 dropout: 0.3
 
 # Optimizer
@@ -33,3 +33,10 @@ load_ckpt_epoch: 0
 
 # Training
 num_epochs: 90
+
+# OPeN
+enable_open: False
+delta: 0.333333333333333333333333333333333333
+pure_noise_mean: [0.0, 0.0, 0.0]
+pure_noise_std: [0.0, 0.0, 0.0]
+pure_noise_image_size: 32

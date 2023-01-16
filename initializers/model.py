@@ -5,7 +5,7 @@ def _count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def initialize_model(model_name, num_classes):
+def initialize_model(model_name, num_classes, enable_dar_bn=False):
     net = None
 
     if model_name == 'WideResNet-28-10-torchdistill':
@@ -29,6 +29,9 @@ def initialize_model(model_name, num_classes):
         from models.m2m_models import resnet32
         # TODO: Dropout?
         net = resnet32(num_classes=num_classes)
+    elif model_name == 'ResNet-32-akamaster':
+        from models.akamaster_resnet32 import resnet32
+        net = resnet32(num_classes=num_classes, enable_dar_bn=enable_dar_bn)
     else:
         logging.error(f"{model_name} is not a supported model name.")
         assert ValueError(f"{model_name} is not a supported model name.")

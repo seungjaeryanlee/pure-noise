@@ -44,6 +44,7 @@ class CelebA5Dataset(Dataset):
             sample_labels_count[label] += 1
         weights = 1. / sample_labels_count
         sample_weights = np.array([weights[l] for l in sample_labels])
+        self.sample_labels_count = sample_labels_count
         self.weights = weights
         self.sample_weights = sample_weights
 
