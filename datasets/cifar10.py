@@ -7,6 +7,12 @@ from torch.utils.data import Dataset
 from torchvision.io import read_image
 
 
+CIFAR10LT_TRAIN_JSON_FILEPATH = "data/json/cifar10_imbalance100/cifar10_imbalance100_train.json"
+CIFAR10LT_TRAIN_IMAGES_DIRPATH = "data/json/cifar10_imbalance100/images/"
+CIFAR10LT_VALID_JSON_FILEPATH = "data/json/cifar10_imbalance100/cifar10_imbalance100_valid.json"
+CIFAR10LT_VALID_IMAGES_DIRPATH = "data/json/cifar10_imbalance100/images/"
+
+
 class CIFAR10LTDataset(Dataset):
     def __init__(self, json_filepath, images_dirpath, transform=None, target_transform=None):
         self.json_filepath = json_filepath
@@ -40,5 +46,22 @@ class CIFAR10LTDataset(Dataset):
         sample_labels_count = np.array([len(np.where(sample_labels == l)[0]) for l in labels])
         weights = 1. / sample_labels_count
         sample_weights = np.array([weights[l] for l in sample_labels])
-        
+
+        self.sample_labels_count = sample_labels_count
+        self.weights = weights
         self.sample_weights = sample_weights
+
+
+def build_train_dataset(transform):
+    return CIFAR10LTDataset(
+        json_filepath=CIFAR10LT_TRAIN_JSON_FILEPATH,
+        images_dirpath=CIFAR10LT_TRAIN_IMAGES_DIRPATH,
+        transform=transform,
+    )
+
+def build_valid_dataset(transform):
+    return CIFAR10LTDataset(
+        json_filepath=CIFAR10LT_VALID_JSON_FILEPATH,
+        images_dirpath=CIFAR10LT_VALID_IMAGES_DIRPATH,
+        transform=transform,
+    )
