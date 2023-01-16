@@ -38,3 +38,10 @@ load_ckpt_epoch: 0
 
 # Training
 num_epochs: 200
+
+# OPeN
+enable_open: False
+delta: 0.333333333333333333333333333333333333
+pure_noise_mean: [0.4988, 0.5040, 0.4926]
+pure_noise_std: [0.2498, 0.2480, 0.2718]
+pure_noise_image_size: 32
