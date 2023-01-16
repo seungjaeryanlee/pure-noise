@@ -24,7 +24,7 @@ logging.getLogger().setLevel(logging.INFO)
 
 def train(CONFIG):
     # Wandb
-    if not CONFIG.disable_wandb:
+    if CONFIG.enable_wandb:
         import wandb
         wandb.login()
         wandb_run = wandb.init(
@@ -210,7 +210,7 @@ def train(CONFIG):
         }
 
         # Logging
-        if not CONFIG.disable_wandb:
+        if CONFIG.enable_wandb:
             wandb.log({
                 "epoch_i": epoch_i,
                 "train_loss": np.mean(train_losses),
@@ -227,9 +227,8 @@ def train(CONFIG):
         scheduler.step()
 
     # Finish wandb run
-    if not CONFIG.disable_wandb:
+    if CONFIG.enable_wandb:
         wandb_run.finish()
-
 
 if __name__ == '__main__':
     DEFAULT_CONFIG_FILEPATH = "default_celeba5.yaml"

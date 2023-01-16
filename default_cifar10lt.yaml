@@ -27,7 +27,7 @@ lr_decay_epochs: [160, 180]
 enable_linear_warmup: False
 
 # Logging
-disable_wandb: True
+enable_wandb: False
 
 # Checkpoint
 enable_checkpoint: False
