@@ -1,8 +1,13 @@
 # Dataset
 dataset: "CelebA-5" # "CIFAR-10-LT" or "CelebA-5"
-train_transform_repr: "[RandomHorizontalFlip(), RandomCrop(32, padding=4), ToTensor()]"
-valid_transform_repr: "[ToTensor()]"
-normalize_using_train_stats: False
+train_transform_reprs:
+- "RandomHorizontalFlip()"
+- "RandomCrop(32, padding=4)"
+- "ToTensor()"
+- "Normalize((0.5037, 0.4335, 0.3993), (0.3116, 0.2951, 0.2953))"
+valid_transform_reprs:
+- "ToTensor()"
+- "Normalize((0.5037, 0.4335, 0.3993), (0.3116, 0.2951, 0.2953))"
 
 # DataLoader
 num_workers: 8

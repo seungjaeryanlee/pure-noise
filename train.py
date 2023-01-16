@@ -1,4 +1,5 @@
 from collections import defaultdict
+import logging
 import os
 
 import numpy as np
@@ -8,6 +9,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, WeightedRandomSampler
+from torchvision import transforms
 
 from checkpointing import load_checkpoint, save_checkpoint
 from initializers import (
@@ -15,6 +17,9 @@ from initializers import (
     initialize_model,
     initialize_transforms,
 ) 
+
+
+logging.getLogger().setLevel(logging.INFO)
 
 
 def train(CONFIG):
@@ -31,39 +36,21 @@ def train(CONFIG):
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     ######################################### Dataset ############################################
-    from torchvision import transforms
+    
+    train_transform = initialize_transforms(CONFIG.train_transform_reprs)
+    valid_transform = initialize_transforms(CONFIG.valid_transform_reprs)
 
     if CONFIG.dataset == 'CelebA-5':
         NUM_CLASSES = 5
-         
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
-        train_dataset_builder = build_train_dataset
-        valid_dataset_builder = build_valid_dataset
+    elif CONFIG.dataset == "CIFAR-10-LT":
+        NUM_CLASSES = 10
+        from datasets.cifar10 import build_train_dataset, build_valid_dataset
+    else:
+        raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
-    ## Find dataset statistics with and without augmentation.
-    # import custom_transforms
-
-    train_transform = initialize_transforms(CONFIG.train_transform_repr)
-    valid_transform = initialize_transforms(CONFIG.valid_transform_repr)
-
-    from datasets.dataset_statistics import dataset_mean_and_std
-    def train_mean_and_std():
-        dataset = build_train_dataset(transforms.Compose(train_transform))
-        return dataset_mean_and_std(dataset)
-    def valid_mean_and_std():
-        dataset = build_valid_dataset(transforms.Compose(valid_transform))
-        return dataset_mean_and_std(dataset)
-
-    train_dataset_mean, train_dataset_std = train_mean_and_std()
-    print(f'Train dataset mean: {train_dataset_mean} std: {train_dataset_std}')
-    valid_dataset_mean, valid_dataset_std = valid_mean_and_std()
-    print(f'Valid dataset mean: {valid_dataset_mean} std: {valid_dataset_std}')
-
-    print(f'Normalize using train stats: {CONFIG.normalize_using_train_stats}')
-    mean = train_dataset_mean if CONFIG.normalize_using_train_stats else valid_dataset_mean
-    std = train_dataset_std if CONFIG.normalize_using_train_stats else valid_dataset_std
-    train_dataset = build_train_dataset(transform=transforms.Compose(train_transform + [transforms.Normalize(mean, std)]))
-    valid_dataset = build_valid_dataset(transform=transforms.Compose(valid_transform + [transforms.Normalize(mean, std)]))
+    train_dataset = build_train_dataset(transform=train_transform)
+    valid_dataset = build_valid_dataset(transform=valid_transform)
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
     print(f"Train dataset class weights: {train_dataset.weights}")
@@ -223,8 +210,18 @@ def train(CONFIG):
 
 
 if __name__ == '__main__':
-    DEFAULT_CONFIG = OmegaConf.load("default2.yaml")
+    DEFAULT_CONFIG_FILEPATH = "default_celeba5.yaml"
+
     CLI_CONFIG = OmegaConf.from_cli()
+    if "config_filepath" in CLI_CONFIG:
+        DEFAULT_CONFIG = OmegaConf.load(CLI_CONFIG.config_filepath)
+        logging.info(f"Loaded config from {CLI_CONFIG.config_filepath}")
+    else:
+        CLI_CONFIG.config_filepath = DEFAULT_CONFIG_FILEPATH
+        DEFAULT_CONFIG = OmegaConf.load(CLI_CONFIG.config_filepath)
+        logging.info(f"No config specified. Loading config from {CLI_CONFIG.config_filepath}")
+
     CONFIG = OmegaConf.merge(DEFAULT_CONFIG, CLI_CONFIG)
+    print(OmegaConf.to_yaml(CONFIG))
 
     train(CONFIG)
