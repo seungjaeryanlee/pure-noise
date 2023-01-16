@@ -57,11 +57,16 @@ def train(CONFIG):
 
     ######################################### DataLoader ############################################
 
-    train_sampler = WeightedRandomSampler(
-        weights=train_dataset.sample_weights,
-        num_samples=len(train_dataset), # https://stackoverflow.com/a/67802529
-        replacement=True,
-    )
+    if CONFIG.use_oversampling:
+        num_samples = train_dataset.sample_labels_count * NUM_CLASSES
+        train_sampler = WeightedRandomSampler(
+            weights=train_dataset.sample_weights,
+            num_samples=num_samples, # https://stackoverflow.com/a/67802529
+            replacement=True,
+        )
+        logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.weights}")
+        logging.info(f"Each epoch has {num_samples} samples.")
+
     train_loader = DataLoader(
         train_dataset,
         sampler=train_sampler if CONFIG.use_oversampling else None,
