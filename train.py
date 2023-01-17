@@ -58,7 +58,7 @@ def train(CONFIG):
 
     ######################################### DataLoader ############################################
 
-    if CONFIG.use_oversampling:
+    if CONFIG.enable_oversampling:
         num_samples = int(max(train_dataset.sample_labels_count) * NUM_CLASSES)
         train_sampler = WeightedRandomSampler(
             weights=train_dataset.sample_weights,
@@ -70,8 +70,8 @@ def train(CONFIG):
 
     train_loader = DataLoader(
         train_dataset,
-        sampler=train_sampler if CONFIG.use_oversampling else None,
-        shuffle=False if CONFIG.use_oversampling else True,
+        sampler=train_sampler if CONFIG.enable_oversampling else None,
+        shuffle=False if CONFIG.enable_oversampling else True,
         batch_size=CONFIG.batch_size,
         num_workers=CONFIG.num_workers,
     )
