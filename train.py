@@ -16,7 +16,8 @@ from initializers import (
     initialize_lr_scheduler,
     initialize_model,
     initialize_transforms,
-) 
+)
+from replace_with_pure_noise import replace_with_pure_noise
 
 
 logging.getLogger().setLevel(logging.INFO)
@@ -24,7 +25,7 @@ logging.getLogger().setLevel(logging.INFO)
 
 def train(CONFIG):
     # Wandb
-    if not CONFIG.disable_wandb:
+    if CONFIG.enable_wandb:
         import wandb
         wandb.login()
         wandb_run = wandb.init(
@@ -108,7 +109,7 @@ def train(CONFIG):
     ######################################### Training #########################################
 
     if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(train_dataset.sample_labels_count, dtype=torch.int).to(device)
+        num_samples_per_class = torch.Tensor(train_dataset.sample_labels_count).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
 
@@ -148,7 +149,7 @@ def train(CONFIG):
                     dataset_std=pure_noise_std,
                     image_size=CONFIG.pure_noise_image_size,
                 )
-                outputs = net(inputs, noise_mask)
+                outputs = net(inputs, noise_mask=noise_mask)
             else:
                 outputs = net(inputs)
             losses = criterion(outputs, labels)
@@ -185,8 +186,12 @@ def train(CONFIG):
             for minibatch_i, (inputs, labels) in enumerate(valid_loader):
                 inputs = inputs.float().to(device)
                 labels = labels.to(device)
-
-                outputs = net(inputs)
+                
+                if CONFIG.enable_open:
+                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).cuda()
+                    outputs = net(inputs, noise_mask=noise_mask)
+                else:
+                    outputs = net(inputs)
                 losses = criterion(outputs, labels)
                 preds = torch.argmax(outputs, dim=1)
 
@@ -210,7 +215,7 @@ def train(CONFIG):
         }
 
         # Logging
-        if not CONFIG.disable_wandb:
+        if CONFIG.enable_wandb:
             wandb.log({
                 "epoch_i": epoch_i,
                 "train_loss": np.mean(train_losses),
@@ -227,9 +232,8 @@ def train(CONFIG):
         scheduler.step()
 
     # Finish wandb run
-    if not CONFIG.disable_wandb:
+    if CONFIG.enable_wandb:
         wandb_run.finish()
-
 
 if __name__ == '__main__':
     DEFAULT_CONFIG_FILEPATH = "default_celeba5.yaml"

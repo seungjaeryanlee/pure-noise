@@ -33,7 +33,7 @@ import torch.nn.functional as F
 import torch.nn.init as init
 
 from torch.autograd import Variable
-from dar_bn import dar_bn
+from .dar_bn import dar_bn
 
 __all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
 
@@ -148,8 +148,8 @@ def resnet20():
     return ResNet(BasicBlock, [3, 3, 3])
 
 
-def resnet32(enable_dar_bn=False):
-    return ResNet(BasicBlock, [5, 5, 5], enable_dar_bn=enable_dar_bn)
+def resnet32(num_classes=10, enable_dar_bn=False):
+    return ResNet(BasicBlock, [5, 5, 5], num_classes=num_classes, enable_dar_bn=enable_dar_bn)
 
 
 def resnet44():
