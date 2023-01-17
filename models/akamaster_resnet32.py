@@ -87,7 +87,10 @@ class BasicBlock(nn.Module):
         out = dar_bn(self.bn2, conv2_out, noise_mask) if self.enable_dar_bn else self.bn2(conv2_out)
         out += self.shortcut(x)
         out = F.relu(out)
-        return out, noise_mask
+        if self.enable_dar_bn:
+            return out, noise_mask
+        else:
+            return out
 
 
 class ResNet(nn.Module):
@@ -135,12 +138,19 @@ class ResNet(nn.Module):
         conv1_out = self.conv1(x)
         bn1_out = dar_bn(self.bn1, conv1_out, noise_mask) if self.enable_dar_bn else self.bn1(conv1_out)
         out = F.relu(bn1_out)
-        out, _ = self.layer1((out, noise_mask) if self.enable_dar_bn else out)
-        out, _ = self.layer2((out, noise_mask) if self.enable_dar_bn else out)
-        out, _ = self.layer3((out, noise_mask) if self.enable_dar_bn else out)
+        out = self.forward_layer(self.layer1, out, noise_mask)
+        out = self.forward_layer(self.layer2, out, noise_mask)
+        out = self.forward_layer(self.layer3, out, noise_mask)
         out = F.avg_pool2d(out, out.size()[3])
         out = out.view(out.size(0), -1)
         out = self.linear(out)
+        return out
+
+    def forward_layer(self, layer, x, noise_mask=None):
+        if self.enable_dar_bn:
+            out, _ = layer((x, noise_mask))
+        else:
+            out = layer(x)
         return out
 
 
