@@ -8,8 +8,7 @@ def sample_noise_images(image_size, mean, std, count):
     g = torch.normal(mean[1], std[1], size=(count, 1, image_size, image_size))
     b = torch.normal(mean[2], std[2], size=(count, 1, image_size, image_size))
     pure_noise_images = torch.cat((r, g, b), 1)
-    # TODO: add clipping.
-    return pure_noise_images
+    return torch.clamp(pure_noise_images, min=0.0, max=1.0)
 
 
 def replace_with_pure_noise(
