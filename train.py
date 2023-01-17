@@ -16,7 +16,8 @@ from initializers import (
     initialize_lr_scheduler,
     initialize_model,
     initialize_transforms,
-) 
+)
+from replace_with_pure_noise import replace_with_pure_noise
 
 
 logging.getLogger().setLevel(logging.INFO)
@@ -58,7 +59,7 @@ def train(CONFIG):
     ######################################### DataLoader ############################################
 
     if CONFIG.use_oversampling:
-        num_samples = max(train_dataset.sample_labels_count) * NUM_CLASSES
+        num_samples = max(train_dataset.sample_labels_count).item() * NUM_CLASSES
         train_sampler = WeightedRandomSampler(
             weights=train_dataset.sample_weights,
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
@@ -148,7 +149,7 @@ def train(CONFIG):
                     dataset_std=pure_noise_std,
                     image_size=CONFIG.pure_noise_image_size,
                 )
-                outputs = net(inputs, noise_mask)
+                outputs = net(inputs, noise_mask=noise_mask)
             else:
                 outputs = net(inputs)
             losses = criterion(outputs, labels)
@@ -185,8 +186,12 @@ def train(CONFIG):
             for minibatch_i, (inputs, labels) in enumerate(valid_loader):
                 inputs = inputs.float().to(device)
                 labels = labels.to(device)
-
-                outputs = net(inputs)
+                
+                if CONFIG.enable_open:
+                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).cuda()
+                    outputs = net(inputs, noise_mask=noise_mask)
+                else:
+                    outputs = net(inputs)
                 losses = criterion(outputs, labels)
                 preds = torch.argmax(outputs, dim=1)
 

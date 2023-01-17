@@ -26,7 +26,7 @@ def replace_with_pure_noise(
             Dataset standard deviation per color channel
         image_size: int
             Image size - Assumes squared images of size (image_size , image_size)
-    """    
+    """
     # Compute representation ratio
     max_class_size = torch.max(num_samples_per_class)
     representation_ratio = num_samples_per_class[targets] / max_class_size
@@ -40,7 +40,7 @@ def replace_with_pure_noise(
         mean=dataset_mean, 
         std=dataset_std, 
         count=len(noise_indices)
-        )
+        ).to(device)
     images[noise_indices] = noise_images
     # Create mask for noise images - later used by DAR-BN
     noise_mask = torch.zeros(images.size(0), dtype=torch.bool).to(device)
