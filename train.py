@@ -59,7 +59,7 @@ def train(CONFIG):
     ######################################### DataLoader ############################################
 
     if CONFIG.use_oversampling:
-        num_samples = max(train_dataset.sample_labels_count).item() * NUM_CLASSES
+        num_samples = int(max(train_dataset.sample_labels_count) * NUM_CLASSES)
         train_sampler = WeightedRandomSampler(
             weights=train_dataset.sample_weights,
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
