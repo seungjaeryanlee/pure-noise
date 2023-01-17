@@ -45,3 +45,4 @@ delta: 0.333333333333333333333333333333333333
 pure_noise_mean: [0.5037, 0.4335, 0.3993]
 pure_noise_std: [0.3116, 0.2951, 0.2953]
 pure_noise_image_size: 32
+open_start_epoch: 50

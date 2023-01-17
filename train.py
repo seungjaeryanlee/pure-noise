@@ -140,15 +140,18 @@ def train(CONFIG):
 
             optimizer.zero_grad()
             if CONFIG.enable_open:
-                noise_mask = replace_with_pure_noise(
-                    images=inputs,
-                    targets=labels,
-                    delta=CONFIG.delta,
-                    num_samples_per_class=num_samples_per_class,
-                    dataset_mean=pure_noise_mean,
-                    dataset_std=pure_noise_std,
-                    image_size=CONFIG.pure_noise_image_size,
-                )
+                if epoch_i < CONFIG.open_start_epoch:
+                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).to(device)
+                else:
+                    noise_mask = replace_with_pure_noise(
+                        images=inputs,
+                        targets=labels,
+                        delta=CONFIG.delta,
+                        num_samples_per_class=num_samples_per_class,
+                        dataset_mean=pure_noise_mean,
+                        dataset_std=pure_noise_std,
+                        image_size=CONFIG.pure_noise_image_size,
+                    )
                 outputs = net(inputs, noise_mask=noise_mask)
             else:
                 outputs = net(inputs)
@@ -188,7 +191,7 @@ def train(CONFIG):
                 labels = labels.to(device)
                 
                 if CONFIG.enable_open:
-                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).cuda()
+                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).to(device)
                     outputs = net(inputs, noise_mask=noise_mask)
                 else:
                     outputs = net(inputs)
