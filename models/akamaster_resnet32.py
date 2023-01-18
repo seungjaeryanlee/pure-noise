@@ -103,7 +103,6 @@ class ResNet(nn.Module):
         self.linear = nn.Linear(64, num_classes)
 
         self.apply(_weights_init)
-        self.enable_dar_bn = enable_dar_bn
 
     def _make_layer(self, block, planes, num_blocks, stride):
         '''
