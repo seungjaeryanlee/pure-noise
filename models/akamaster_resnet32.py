@@ -34,6 +34,7 @@ import torch.nn.init as init
 
 from torch.autograd import Variable
 from .dar_bn import dar_bn
+from .dar_bn_sequential import DarBnSequential
 
 __all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
 
@@ -77,9 +78,7 @@ class BasicBlock(nn.Module):
                      nn.BatchNorm2d(self.expansion * planes)
                 )
 
-    def forward(self, x):
-        if self.enable_dar_bn:
-            x, noise_mask = x
+    def forward(self, x, noise_mask=None):
         conv1_out = self.conv1(x)
         bn1_out = dar_bn(self.bn1, conv1_out, noise_mask) if self.enable_dar_bn else self.bn1(conv1_out)
         out = F.relu(bn1_out)
@@ -87,10 +86,7 @@ class BasicBlock(nn.Module):
         out = dar_bn(self.bn2, conv2_out, noise_mask) if self.enable_dar_bn else self.bn2(conv2_out)
         out += self.shortcut(x)
         out = F.relu(out)
-        if self.enable_dar_bn:
-            return out, noise_mask
-        else:
-            return out
+        return out, noise_mask
 
 
 class ResNet(nn.Module):
@@ -123,7 +119,7 @@ class ResNet(nn.Module):
             layers.append(block(self.in_planes, planes, stride, enable_dar_bn=self.enable_dar_bn))
             self.in_planes = planes * block.expansion
 
-        return nn.Sequential(*layers)
+        return DarBnSequential(*layers)
 
     def forward(self, x, noise_mask=None):
         '''
@@ -138,19 +134,12 @@ class ResNet(nn.Module):
         conv1_out = self.conv1(x)
         bn1_out = dar_bn(self.bn1, conv1_out, noise_mask) if self.enable_dar_bn else self.bn1(conv1_out)
         out = F.relu(bn1_out)
-        out = self.forward_layer(self.layer1, out, noise_mask)
-        out = self.forward_layer(self.layer2, out, noise_mask)
-        out = self.forward_layer(self.layer3, out, noise_mask)
+        out = self.layer1(out, noise_mask)
+        out = self.layer2(out, noise_mask)
+        out = self.layer3(out, noise_mask)
         out = F.avg_pool2d(out, out.size()[3])
         out = out.view(out.size(0), -1)
         out = self.linear(out)
-        return out
-
-    def forward_layer(self, layer, x, noise_mask=None):
-        if self.enable_dar_bn:
-            out, _ = layer((x, noise_mask))
-        else:
-            out = layer(x)
         return out
 
 
