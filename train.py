@@ -65,13 +65,19 @@ def train(CONFIG):
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
             replacement=True,
         )
+        train_oversampling_loader = DataLoader(
+            train_dataset,
+            sampler=train_sampler,
+            shuffle=False,
+            batch_size=CONFIG.batch_size,
+            num_workers=CONFIG.num_workers,
+        )
         logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.weights}")
-        logging.info(f"Each epoch has {num_samples} samples.")
+        logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
 
-    train_loader = DataLoader(
+    train_default_loader = DataLoader(
         train_dataset,
-        sampler=train_sampler if CONFIG.enable_oversampling else None,
-        shuffle=False if CONFIG.enable_oversampling else True,
+        shuffle=True,
         batch_size=CONFIG.batch_size,
         num_workers=CONFIG.num_workers,
     )
@@ -128,6 +134,12 @@ def train(CONFIG):
             os.makedirs("checkpoints/", exist_ok=True)
             save_checkpoint(net, optimizer, checkpoint_filepath)
             wandb.save(checkpoint_filepath)
+
+        # Choose dataloader
+        if CONFIG.enable_oversampling and CONFIG.oversampling_start_epoch <= epoch_i:
+            train_loader = train_oversampling_loader
+        else:
+            train_loader = train_default_loader
 
         ## Training Phase
         net.train()
