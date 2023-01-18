@@ -8,11 +8,14 @@ from typing import Any
 import torch
 import torch.nn as nn
 from torch import Tensor
+from .dar_bn import dar_bn
+from .dar_bn_sequential import DarBnSequential
 
 
 class WideBasicBlock(nn.Module):
-    def __init__(self, in_planes, planes, dropout_rate, stride=1):
+    def __init__(self, in_planes, planes, dropout_rate, stride=1, enable_dar_bn=False):
         super().__init__()
+        self.enable_dar_bn = enable_dar_bn
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -25,21 +28,22 @@ class WideBasicBlock(nn.Module):
                 nn.Conv2d(in_planes, planes, kernel_size=1, stride=stride, bias=False),
             )
 
-    def forward(self, x):
-        out = self.bn1(x)
+    def forward(self, x, noise_mask=None):
+        out = dar_bn(self.bn1, x, noise_mask) if self.enable_dar_bn else self.bn1(x)
         out = self.relu(out)
         out = self.conv1(out)
         out = self.dropout(out)
-        out = self.bn2(out)
+        out = dar_bn(self.bn2, out, noise_mask) if self.enable_dar_bn else self.bn2(out)
         out = self.relu(out)
         out = self.conv2(out)
         out += self.shortcut(x)
-        return out
+        return out, noise_mask
 
 
 class WideResNet(nn.Module):
-    def __init__(self, depth, k, dropout_p, block, num_classes, norm_layer=None):
+    def __init__(self, depth, k, dropout_p, block, num_classes, norm_layer=None, enable_dar_bn=False):
         super().__init__()
+        self.enable_dar_bn = enable_dar_bn
         n = (depth - 4) / 6
         stage_sizes = [16, 16 * k, 32 * k, 64 * k]
         self.in_planes = 16
@@ -66,22 +70,22 @@ class WideResNet(nn.Module):
         strides = [stride] + [1] * (int(num_blocks) - 1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, dropout_rate, stride))
+            layers.append(block(self.in_planes, planes, dropout_rate, stride, enable_dar_bn=self.enable_dar_bn))
             self.in_planes = planes
-        return nn.Sequential(*layers)
+        return DarBnSequential(*layers)
 
-    def _forward_impl(self, x: Tensor) -> Tensor:
+    def _forward_impl(self, x: Tensor, noise_mask=None) -> Tensor:
         # See note [TorchScript super()]
         x = self.conv1(x)
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.bn1(x)
+        x = self.layer1(x, noise_mask)
+        x = self.layer2(x, noise_mask)
+        x = self.layer3(x, noise_mask)
+        x = dar_bn(self.bn1, x, noise_mask) if self.enable_dar_bn else self.bn1(x)
         x = self.relu(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
 
-    def forward(self, x: Tensor) -> Tensor:
-        return self._forward_impl(x)
+    def forward(self, x: Tensor, noise_mask=None) -> Tensor:
+        return self._forward_impl(x, noise_mask=noise_mask)

@@ -16,7 +16,7 @@ enable_oversampling: False
 
 # Model
 model: "ResNet-32-m2m" # "ResNet-32-m2m" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
-dropout: 0.3
+dropout_rate: 0.3
 
 # Optimizer
 lr: 0.1

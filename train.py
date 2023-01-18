@@ -84,7 +84,7 @@ def train(CONFIG):
 
     ######################################### Model #########################################
 
-    net = initialize_model(model_name=CONFIG.model, num_classes=NUM_CLASSES, enable_dar_bn=CONFIG.enable_open)
+    net = initialize_model(model_name=CONFIG.model, num_classes=NUM_CLASSES, enable_dar_bn=CONFIG.enable_open, dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
 
     ######################################### Optimizer #########################################
