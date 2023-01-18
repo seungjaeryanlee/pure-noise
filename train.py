@@ -164,6 +164,9 @@ def train(CONFIG):
             train_labels.extend(labels.cpu().detach().tolist())
             train_preds.extend(preds.cpu().detach().tolist())
 
+            if CONFIG.debug_run and minibatch_i > 20:
+                break
+
         train_losses = np.array(train_losses)
         train_labels = np.array(train_labels)
         train_preds = np.array(train_preds)
@@ -202,6 +205,9 @@ def train(CONFIG):
                 valid_labels.extend(labels.cpu().detach().tolist())
                 valid_preds.extend(preds.cpu().detach().tolist())
 
+                if CONFIG.debug_run and minibatch_i > 20:
+                    break
+
         valid_losses = np.array(valid_losses)
         valid_labels = np.array(valid_labels)
         valid_preds = np.array(valid_preds)
@@ -233,6 +239,9 @@ def train(CONFIG):
             })
 
         scheduler.step()
+
+        if CONFIG.debug_run:
+            break
 
     # Finish wandb run
     if CONFIG.enable_wandb:

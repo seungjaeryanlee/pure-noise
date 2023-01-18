@@ -27,11 +27,14 @@ def initialize_model(model_name, num_classes, enable_dar_bn=False, dropout_rate=
             num_classes=num_classes,
         )
     elif model_name == 'ResNet-32-m2m':
-        from models.m2m_models import resnet32
+        from models.resnet_m2m import resnet32
         net = resnet32(num_classes=num_classes)
     elif model_name == 'ResNet-32-akamaster':
-        from models.akamaster_resnet32 import resnet32
+        from models.resnet_akamaster import resnet32
         net = resnet32(num_classes=num_classes, enable_dar_bn=enable_dar_bn)
+    elif model_name == 'ResNet-32-ldam':
+        from models.resnet_ldam_drw import resnet32
+        net = resnet32(num_classes=num_classes)
     else:
         logging.error(f"{model_name} is not a supported model name.")
         assert ValueError(f"{model_name} is not a supported model name.")
