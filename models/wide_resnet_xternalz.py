@@ -10,7 +10,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from code_from_paper import dar_bn
+from .dar_bn import dar_bn
 
 class BasicBlockDarBn(nn.Module):
     def __init__(self, in_planes, out_planes, stride, dropRate=0.0):
