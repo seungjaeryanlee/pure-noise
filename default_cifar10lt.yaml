@@ -48,7 +48,7 @@ delta: 0.333333333333333333333333333333333333
 pure_noise_mean: [0.4988, 0.5040, 0.4926]
 pure_noise_std: [0.2498, 0.2480, 0.2718]
 pure_noise_image_size: 32
-open_start_epoch: 150
+open_start_epoch: 160
 
 # Debugging
 debug_run: False
