@@ -57,20 +57,18 @@ def train(CONFIG):
 
     ######################################### DataLoader ############################################
 
+    # weights
+    from datasets.sampling import compute_weights_info
+    weights_info = compute_weights_info(train_dataset, NUM_CLASSES, CONFIG.oversample_ldam_weights)
     if CONFIG.enable_oversampling:
-        # weights
-        from datasets.sampling import build_weights
-        weights_info = build_weights(train_dataset, NUM_CLASSES, CONFIG.oversample_ldam_weights)
-        logging.info(f"Train dataset class weights: {weights_info.label_weights}")
-
         # num_samples
         if CONFIG.oversample_num_majority_class_samples:
-            num_samples = int(max(weights_info.sample_labels_count) * NUM_CLASSES)
+            num_samples = int(max(weights_info['sample_labels_count']) * NUM_CLASSES)
         else:
             num_samples = len(train_dataset)
 
         train_sampler = WeightedRandomSampler(
-            weights=weights_info.sample_weights,
+            weights=weights_info['sample_weights'],
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
             replacement=True,
         )
@@ -81,7 +79,7 @@ def train(CONFIG):
             batch_size=CONFIG.batch_size,
             num_workers=CONFIG.num_workers,
         )
-        logging.info(f"Initialized WeightedRandomSampler with weights {weights_info.label_weights}")
+        logging.info(f"Initialized WeightedRandomSampler with weights {weights_info['label_weights']}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
 
     train_default_loader = DataLoader(
@@ -124,7 +122,7 @@ def train(CONFIG):
     ######################################### Training #########################################
 
     if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(train_dataset.sample_labels_count).to(device)
+        num_samples_per_class = torch.Tensor(weights_info['sample_labels_count']).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
 
