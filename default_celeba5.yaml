@@ -14,6 +14,8 @@ num_workers: 8
 batch_size: 128
 enable_oversampling: False
 oversampling_start_epoch: 30
+oversample_num_majority_class_samples: True
+oversample_ldam_weights: False
 
 # Model
 model: "ResNet-32-m2m" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
