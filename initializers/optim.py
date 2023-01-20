@@ -51,6 +51,12 @@ def compute_learning_rate(
     else:
         return default_lr
 
+
+def set_learning_rate(optimizer, lr):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+    
+
 if __name__ == '__main__':
     default_lr = 0.1 
     lr_decay = 0.01

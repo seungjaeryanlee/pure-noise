@@ -13,7 +13,8 @@ from torchvision import transforms
 
 from checkpointing import load_checkpoint, save_checkpoint
 from initializers import (
-    initialize_lr_scheduler,
+    compute_learning_rate,
+    set_learning_rate,
     initialize_model,
     initialize_transforms,
 )
@@ -74,6 +75,7 @@ def train(CONFIG):
             shuffle=False,
             batch_size=CONFIG.batch_size,
             num_workers=CONFIG.num_workers,
+            pin_memory=CONFIG.enable_pin_memory,
         )
         logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
@@ -83,12 +85,14 @@ def train(CONFIG):
         shuffle=True,
         batch_size=CONFIG.batch_size,
         num_workers=CONFIG.num_workers,
+        pin_memory=CONFIG.enable_pin_memory,
     )
 
     valid_loader = DataLoader(
         valid_dataset,
         batch_size=CONFIG.batch_size,
         num_workers=CONFIG.num_workers,
+        pin_memory=CONFIG.enable_pin_memory,
     )
 
     ######################################### Model #########################################
@@ -108,12 +112,6 @@ def train(CONFIG):
         momentum=CONFIG.momentum,
         weight_decay=CONFIG.weight_decay,
     )
-    scheduler = initialize_lr_scheduler(
-        optimizer,
-        enable_linear_warmup=CONFIG.enable_linear_warmup,
-        lr_decay=CONFIG.lr_decay,
-        lr_decay_epochs=CONFIG.lr_decay_epochs,
-    )
 
     ######################################### Loss #########################################
 
@@ -130,12 +128,20 @@ def train(CONFIG):
     if CONFIG.load_ckpt:
         load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
         start_epoch_i += CONFIG.load_ckpt_epoch
-        # end_epoch_i += LOAD_CKPT_EPOCH
 
     for epoch_i in range(start_epoch_i, end_epoch_i):
         print(f'epoch: {epoch_i}')
+        
+        # Update learning rate
+        set_learning_rate(optimizer,
+                          compute_learning_rate(
+                              epoch=epoch_i,
+                              default_lr=CONFIG.lr,
+                              lr_decay=CONFIG.lr_decay,
+                              lr_decay_epochs=CONFIG.lr_decay_epochs,
+                              enable_linear_warmup=CONFIG.enable_linear_warmup))
+        
         # Save checkpoint
-        # TODO: fix checkpoint error.
         if CONFIG.enable_checkpoint and (epoch_i % CONFIG.save_ckpt_every_n_epoch == 0):
             checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
             os.makedirs("checkpoints/", exist_ok=True)
@@ -256,8 +262,6 @@ def train(CONFIG):
                 **valid_acc_per_class_dict,
                 "lr": optimizer.param_groups[0]['lr'],
             }, step=epoch_i)
-
-        scheduler.step()
 
         if CONFIG.debug_run:
             break
