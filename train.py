@@ -129,8 +129,8 @@ def train(CONFIG):
     start_epoch_i, end_epoch_i = 0, CONFIG.num_epochs
     if CONFIG.load_ckpt:
         load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
-        start_epoch_i += LOAD_CKPT_EPOCH
-        end_epoch_i += LOAD_CKPT_EPOCH
+        start_epoch_i += CONFIG.load_ckpt_epoch
+        # end_epoch_i += LOAD_CKPT_EPOCH
 
     for epoch_i in range(start_epoch_i, end_epoch_i):
         print(f'epoch: {epoch_i}')
@@ -267,7 +267,7 @@ def train(CONFIG):
         wandb_run.finish()
 
 if __name__ == '__main__':
-    DEFAULT_CONFIG_FILEPATH = "default_celeba5.yaml"
+    DEFAULT_CONFIG_FILEPATH = "default_cifar10lt.yaml"
 
     CLI_CONFIG = OmegaConf.from_cli()
     if "config_filepath" in CLI_CONFIG:

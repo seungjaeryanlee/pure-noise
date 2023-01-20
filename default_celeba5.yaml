@@ -14,11 +14,11 @@ num_workers: 8
 batch_size: 128
 enable_oversampling: False
 oversampling_start_epoch: 30
-oversample_majority_class_num_samples: True
-oversample_use_effective_num_sample_weights: False
+oversample_majority_class_num_samples: False
+oversample_use_effective_num_sample_weights: True
 
 # Model
-model: "ResNet-32-m2m" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
+model: "WideResNet-28-10-torchdistill" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
 dropout_rate: 0.3
 
 # Optimizer
@@ -30,10 +30,10 @@ lr_decay_epochs: [30, 60]
 enable_linear_warmup: False
 
 # Logging
-enable_wandb: False
+enable_wandb: True
 
 # Checkpoint
-enable_checkpoint: False
+enable_checkpoint: True
 save_ckpt_every_n_epoch: 10
 load_ckpt: False
 load_ckpt_filepath: "checkpoints/.pt"
