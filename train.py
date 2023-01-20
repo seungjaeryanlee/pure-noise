@@ -244,7 +244,7 @@ def train(CONFIG):
 
         # Logging
         if CONFIG.enable_wandb:
-            wandb.log({
+            wandb.log(data={
                 "epoch_i": epoch_i,
                 "train_loss": np.mean(train_losses),
                 "train_acc": np.mean(train_preds == train_labels),
@@ -255,7 +255,7 @@ def train(CONFIG):
                 **valid_loss_per_class_dict,
                 **valid_acc_per_class_dict,
                 "lr": optimizer.param_groups[0]['lr'],
-            })
+            }, step=epoch_i)
 
         scheduler.step()
 
