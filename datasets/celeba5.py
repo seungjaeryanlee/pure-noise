@@ -4,7 +4,7 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from sampling import count_class_frequency, compute_class_weights, compute_sample_weights
+from .sampling import count_class_frequency, compute_class_weights, compute_sample_weights
 
 CELEBA5_TRAIN_DATASET_PATH = 'data/CelebA5_64x64/train'
 CELEBA5_VALID_DATASET_PATH = 'data/CelebA5_64x64/valid'

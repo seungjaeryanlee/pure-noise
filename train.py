@@ -122,7 +122,7 @@ def train(CONFIG):
     ######################################### Training #########################################
 
     if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(train_dataset.class_freqeuncy).to(device)
+        num_samples_per_class = torch.Tensor(train_dataset.class_frequency).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
 
