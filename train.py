@@ -42,33 +42,29 @@ def train(CONFIG):
     valid_transform = initialize_transforms(CONFIG.valid_transform_reprs)
 
     if CONFIG.dataset == 'CelebA-5':
-        NUM_CLASSES = 5
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
     elif CONFIG.dataset == "CIFAR-10-LT":
-        NUM_CLASSES = 10
         from datasets.cifar10 import build_train_dataset, build_valid_dataset
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
-    train_dataset = build_train_dataset(transform=train_transform)
+    train_dataset = build_train_dataset(
+        transform=train_transform, 
+        use_effective_num_sample_weights=CONFIG.oversample_use_effective_num_sample_weights)
     valid_dataset = build_valid_dataset(transform=valid_transform)
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
     ######################################### DataLoader ############################################
 
-    # weights
-    from datasets.sampling import compute_weights_info
-    weights_info = compute_weights_info(train_dataset, NUM_CLASSES, CONFIG.oversample_ldam_weights)
     if CONFIG.enable_oversampling:
-        # num_samples
-        if CONFIG.oversample_num_majority_class_samples:
-            num_samples = int(max(weights_info['sample_labels_count']) * NUM_CLASSES)
+        if CONFIG.oversample_majority_class_num_samples:
+            num_samples = int(max(train_dataset.class_frequency) * train_dataset.NUM_CLASSES)
         else:
             num_samples = len(train_dataset)
 
         train_sampler = WeightedRandomSampler(
-            weights=weights_info['sample_weights'],
+            weights=train_dataset.sample_weights,
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
             replacement=True,
         )
@@ -79,7 +75,7 @@ def train(CONFIG):
             batch_size=CONFIG.batch_size,
             num_workers=CONFIG.num_workers,
         )
-        logging.info(f"Initialized WeightedRandomSampler with weights {weights_info['label_weights']}")
+        logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
 
     train_default_loader = DataLoader(
@@ -97,7 +93,11 @@ def train(CONFIG):
 
     ######################################### Model #########################################
 
-    net = initialize_model(model_name=CONFIG.model, num_classes=NUM_CLASSES, enable_dar_bn=CONFIG.enable_open, dropout_rate=CONFIG.dropout_rate)
+    net = initialize_model(
+        model_name=CONFIG.model, 
+        num_classes=train_dataset.NUM_CLASSES, 
+        enable_dar_bn=CONFIG.enable_open, 
+        dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
 
     ######################################### Optimizer #########################################
@@ -122,7 +122,7 @@ def train(CONFIG):
     ######################################### Training #########################################
 
     if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(weights_info['sample_labels_count']).to(device)
+        num_samples_per_class = torch.Tensor(train_dataset.class_freqeuncy).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
 
@@ -193,12 +193,12 @@ def train(CONFIG):
         # Filter losses by classes
         train_loss_per_class_dict = {
             f"train_loss__class_{class_}": train_losses[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         train_acc_per_class_dict = {
             f"train_acc__class_{class_}": (train_preds == train_labels)[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
 
         ## Validation Phase
@@ -234,12 +234,12 @@ def train(CONFIG):
         # Filter losses by classes
         valid_loss_per_class_dict = {
             f"valid_loss__class_{class_}": valid_losses[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         valid_acc_per_class_dict = {
             f"valid_acc__class_{class_}": (valid_preds == valid_labels)[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
 
         # Logging
