@@ -16,7 +16,7 @@ enable_oversampling: False
 oversampling_start_epoch: 30
 oversample_majority_class_num_samples: False
 oversample_use_effective_num_sample_weights: True
-enable_pin_memory: True
+enable_pin_memory: False
 
 # Model
 model: "WideResNet-28-10-torchdistill" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
