@@ -42,24 +42,27 @@ def train(CONFIG):
     valid_transform = initialize_transforms(CONFIG.valid_transform_reprs)
 
     if CONFIG.dataset == 'CelebA-5':
-        NUM_CLASSES = 5
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
     elif CONFIG.dataset == "CIFAR-10-LT":
-        NUM_CLASSES = 10
         from datasets.cifar10 import build_train_dataset, build_valid_dataset
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
-    train_dataset = build_train_dataset(transform=train_transform)
+    train_dataset = build_train_dataset(
+        transform=train_transform, 
+        use_effective_num_sample_weights=CONFIG.oversample_use_effective_num_sample_weights)
     valid_dataset = build_valid_dataset(transform=valid_transform)
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
-    print(f"Train dataset class weights: {train_dataset.weights}")
 
     ######################################### DataLoader ############################################
 
     if CONFIG.enable_oversampling:
-        num_samples = int(max(train_dataset.sample_labels_count) * NUM_CLASSES)
+        if CONFIG.oversample_majority_class_num_samples:
+            num_samples = int(max(train_dataset.class_frequency) * train_dataset.NUM_CLASSES)
+        else:
+            num_samples = len(train_dataset)
+
         train_sampler = WeightedRandomSampler(
             weights=train_dataset.sample_weights,
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
@@ -72,7 +75,7 @@ def train(CONFIG):
             batch_size=CONFIG.batch_size,
             num_workers=CONFIG.num_workers,
         )
-        logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.weights}")
+        logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
 
     train_default_loader = DataLoader(
@@ -90,7 +93,11 @@ def train(CONFIG):
 
     ######################################### Model #########################################
 
-    net = initialize_model(model_name=CONFIG.model, num_classes=NUM_CLASSES, enable_dar_bn=CONFIG.enable_open, dropout_rate=CONFIG.dropout_rate)
+    net = initialize_model(
+        model_name=CONFIG.model, 
+        num_classes=train_dataset.NUM_CLASSES, 
+        enable_dar_bn=CONFIG.enable_open, 
+        dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
 
     ######################################### Optimizer #########################################
@@ -115,15 +122,15 @@ def train(CONFIG):
     ######################################### Training #########################################
 
     if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(train_dataset.sample_labels_count).to(device)
+        num_samples_per_class = torch.Tensor(train_dataset.class_frequency).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
 
     start_epoch_i, end_epoch_i = 0, CONFIG.num_epochs
     if CONFIG.load_ckpt:
         load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
-        start_epoch_i += LOAD_CKPT_EPOCH
-        end_epoch_i += LOAD_CKPT_EPOCH
+        start_epoch_i += CONFIG.load_ckpt_epoch
+        # end_epoch_i += LOAD_CKPT_EPOCH
 
     for epoch_i in range(start_epoch_i, end_epoch_i):
         print(f'epoch: {epoch_i}')
@@ -186,12 +193,12 @@ def train(CONFIG):
         # Filter losses by classes
         train_loss_per_class_dict = {
             f"train_loss__class_{class_}": train_losses[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         train_acc_per_class_dict = {
             f"train_acc__class_{class_}": (train_preds == train_labels)[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
 
         ## Validation Phase
@@ -227,17 +234,17 @@ def train(CONFIG):
         # Filter losses by classes
         valid_loss_per_class_dict = {
             f"valid_loss__class_{class_}": valid_losses[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         valid_acc_per_class_dict = {
             f"valid_acc__class_{class_}": (valid_preds == valid_labels)[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(NUM_CLASSES)
+            for class_ in np.arange(train_dataset.NUM_CLASSES)
         }
 
         # Logging
         if CONFIG.enable_wandb:
-            wandb.log({
+            wandb.log(data={
                 "epoch_i": epoch_i,
                 "train_loss": np.mean(train_losses),
                 "train_acc": np.mean(train_preds == train_labels),
@@ -248,7 +255,7 @@ def train(CONFIG):
                 **valid_loss_per_class_dict,
                 **valid_acc_per_class_dict,
                 "lr": optimizer.param_groups[0]['lr'],
-            })
+            }, step=epoch_i)
 
         scheduler.step()
 
@@ -260,7 +267,7 @@ def train(CONFIG):
         wandb_run.finish()
 
 if __name__ == '__main__':
-    DEFAULT_CONFIG_FILEPATH = "default_celeba5.yaml"
+    DEFAULT_CONFIG_FILEPATH = "default_cifar10lt.yaml"
 
     CLI_CONFIG = OmegaConf.from_cli()
     if "config_filepath" in CLI_CONFIG:
