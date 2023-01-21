@@ -35,7 +35,7 @@ enable_wandb: True
 
 # Checkpoint
 save_ckpt: False
-save_ckpt_epochs: [30]
+save_ckpt_epochs: [29, 49]
 load_ckpt: False
 load_ckpt_filepath: "checkpoints/.pt"
 
