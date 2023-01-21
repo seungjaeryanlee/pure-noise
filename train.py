@@ -11,7 +11,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from torchvision import transforms
 
-from checkpointing import load_checkpoint, save_checkpoint
+from checkpointing import load_checkpoint, load_finished_epoch_from_checkpoint, save_checkpoint
 from initializers import (
     compute_learning_rate,
     set_learning_rate,
@@ -123,12 +123,13 @@ def train(CONFIG):
 
     ######################################### Training #########################################
 
-    start_epoch_i, end_epoch_i = 0, CONFIG.num_epochs
+    start_epoch_i = 0
     if CONFIG.load_ckpt:
+        # Start epoch is one after the checkpointed epoch, because we checkpoint after finishing the epoch.
+        start_epoch_i = load_finished_epoch_from_checkpoint(CONFIG.load_ckpt_filepath) + 1
         load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
-        start_epoch_i += CONFIG.load_ckpt_epoch
-
-    for epoch_i in range(start_epoch_i, end_epoch_i):
+    
+    for epoch_i in range(start_epoch_i, CONFIG.num_epochs):
         print(f'epoch: {epoch_i}')
         
         # Update learning rate
@@ -139,13 +140,6 @@ def train(CONFIG):
                               lr_decay=CONFIG.lr_decay,
                               lr_decay_epochs=CONFIG.lr_decay_epochs,
                               enable_linear_warmup=CONFIG.enable_linear_warmup))
-        
-        # Save checkpoint
-        if CONFIG.save_ckpt and (epoch_i in CONFIG.save_ckpt_epochs):
-            checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
-            os.makedirs("checkpoints/", exist_ok=True)
-            save_checkpoint(net, optimizer, checkpoint_filepath)
-            wandb.save(checkpoint_filepath)
 
         # Choose dataloader
         if CONFIG.enable_oversampling and CONFIG.oversampling_start_epoch <= epoch_i:
@@ -261,6 +255,13 @@ def train(CONFIG):
                 **valid_acc_per_class_dict,
                 "lr": optimizer.param_groups[0]['lr'],
             }, step=epoch_i)
+        
+        # Save checkpoint
+        if CONFIG.save_ckpt and (epoch_i in CONFIG.save_ckpt_epochs):
+            checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
+            os.makedirs("checkpoints/", exist_ok=True)
+            save_checkpoint(net, optimizer, checkpoint_filepath, finished_epoch=epoch_i)
+            wandb.save(checkpoint_filepath)
 
         if CONFIG.debug_run:
             break

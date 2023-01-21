@@ -35,10 +35,9 @@ enable_wandb: True
 
 # Checkpoint
 save_ckpt: False
-save_ckpt_epochs: [160]
+save_ckpt_epochs: [30]
 load_ckpt: False
 load_ckpt_filepath: "checkpoints/.pt"
-load_ckpt_epoch: 0
 
 # Training
 num_epochs: 90
