@@ -32,6 +32,7 @@ enable_linear_warmup: False
 
 # Logging
 enable_wandb: True
+wandb_name: ""
 
 # Checkpoint
 save_ckpt: False

@@ -1,12 +1,11 @@
-# ERM
-python train.py enable_checkpoint=True enable_linear_warmup=True
-
-# OPeN
-# python train.py \
-# load_ckpt=True load_ckpt_filepath='checkpoints/bumbling-vortex-221__epoch_160.pt' load_ckpt_epoch=160 \
-# enable_oversampling=True enable_open=True
+python train.py enable_linear_warmup=True save_ckpt=True wandb_name='warmup-0121'
 
 # Oversampling
-# python train.py \
-# load_ckpt=True load_ckpt_filepath='checkpoints/bumbling-vortex-221__epoch_160.pt' load_ckpt_epoch=160 \
-# enable_oversampling=True
+python train.py enable_linear_warmup=True wandb_name='warmup-rs-0121' \
+load_ckpt=True load_ckpt_filepath='checkpoints/warmup-0121__epoch_159.pt' \
+enable_oversampling=True
+
+# OPeN
+python train.py enable_linear_warmup=True wandb_name='warmup-open-0121' \
+load_ckpt=True load_ckpt_filepath='checkpoints/warmup-0121__epoch_159.pt' \
+enable_oversampling=True enable_open=True
