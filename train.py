@@ -31,7 +31,7 @@ def train(CONFIG):
         wandb_run = wandb.init(
             project="pure-noise",
             entity="brianryan",
-            name=None if not CONFIG.wandb_name else CONFIG.wandb_name
+            name=None if not CONFIG.wandb_name else CONFIG.wandb_name,
             config=OmegaConf.to_container(CONFIG),
         )
 
