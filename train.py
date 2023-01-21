@@ -20,7 +20,6 @@ from initializers import (
 )
 from replace_with_pure_noise import replace_with_pure_noise
 
-
 logging.getLogger().setLevel(logging.INFO)
 
 
@@ -49,9 +48,7 @@ def train(CONFIG):
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
-    train_dataset = build_train_dataset(
-        transform=train_transform, 
-        use_effective_num_sample_weights=CONFIG.oversample_use_effective_num_sample_weights)
+    train_dataset = build_train_dataset(transform=train_transform)
     valid_dataset = build_valid_dataset(transform=valid_transform)
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
@@ -63,9 +60,16 @@ def train(CONFIG):
             num_samples = int(max(train_dataset.class_frequency) * train_dataset.NUM_CLASSES)
         else:
             num_samples = len(train_dataset)
+        
+        from datasets.sampling import compute_class_weights_on_effective_num_samples, compute_sample_weights
+        if CONFIG.oversample_use_effective_num_sample_weights:
+            class_weights = compute_class_weights_on_effective_num_samples(train_dataset.class_frequency)
+        else:
+            class_weights = 1. / train_dataset.class_frequency
+        sample_weights = compute_sample_weights(train_dataset.get_labels(), class_weights)
 
         train_sampler = WeightedRandomSampler(
-            weights=train_dataset.sample_weights,
+            weights=sample_weights,
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
             replacement=True,
         )
@@ -77,7 +81,7 @@ def train(CONFIG):
             num_workers=CONFIG.num_workers,
             pin_memory=CONFIG.enable_pin_memory,
         )
-        logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.class_weights}")
+        logging.info(f"Initialized WeightedRandomSampler with weights {class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
 
     train_default_loader = DataLoader(
