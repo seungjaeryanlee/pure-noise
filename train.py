@@ -119,11 +119,6 @@ def train(CONFIG):
 
     ######################################### Training #########################################
 
-    if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(train_dataset.class_frequency).to(device)
-        pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
-        pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
-
     start_epoch_i, end_epoch_i = 0, CONFIG.num_epochs
     if CONFIG.load_ckpt:
         load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
@@ -172,9 +167,9 @@ def train(CONFIG):
                         images=inputs,
                         targets=labels,
                         delta=CONFIG.delta,
-                        num_samples_per_class=num_samples_per_class,
-                        dataset_mean=pure_noise_mean,
-                        dataset_std=pure_noise_std,
+                        num_samples_per_class=torch.Tensor(train_dataset.class_frequency).to(device),
+                        dataset_mean=torch.Tensor(CONFIG.pure_noise_mean).to(device),
+                        dataset_std=torch.Tensor(CONFIG.pure_noise_std).to(device),
                         image_size=CONFIG.pure_noise_image_size,
                     )
                 outputs = net(inputs, noise_mask=noise_mask)
