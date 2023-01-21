@@ -36,14 +36,13 @@ def initialize_lr_scheduler(
 Modified from https://github.com/kaidic/LDAM-DRW/blob/master/cifar_train.py
 """
 def compute_learning_rate( 
-    epoch,
+    epoch, # starts at 0
     default_lr,
     lr_decay, 
     lr_decay_epochs, 
     enable_linear_warmup):
-    
-    if enable_linear_warmup and epoch <= 5:
-        return default_lr * epoch / 5
+    if enable_linear_warmup and (epoch < 5):
+        return default_lr * (epoch + 1) / 5
     elif epoch >= lr_decay_epochs[1]:
         return default_lr * (lr_decay ** 2)
     elif epoch >= lr_decay_epochs[0]:
@@ -62,10 +61,9 @@ if __name__ == '__main__':
     lr_decay = 0.01
     lr_decay_epochs = [160, 180]
     assert compute_learning_rate(0, default_lr, lr_decay, lr_decay_epochs, False) == 0.1
-    assert compute_learning_rate(0, default_lr, lr_decay, lr_decay_epochs, True) == 0
-    assert compute_learning_rate(1, default_lr, lr_decay, lr_decay_epochs, True) == 0.02
-    assert compute_learning_rate(4, default_lr, lr_decay, lr_decay_epochs, True) == 0.08
-    assert compute_learning_rate(5, default_lr, lr_decay, lr_decay_epochs, True) == 0.1
+    assert compute_learning_rate(0, default_lr, lr_decay, lr_decay_epochs, True) == 0.02
+    assert compute_learning_rate(3, default_lr, lr_decay, lr_decay_epochs, True) == 0.08
+    assert compute_learning_rate(4, default_lr, lr_decay, lr_decay_epochs, True) == 0.1
     assert compute_learning_rate(159, default_lr, lr_decay, lr_decay_epochs, True) == 0.1
     assert compute_learning_rate(160, default_lr, lr_decay, lr_decay_epochs, True) == 0.001
     assert compute_learning_rate(179, default_lr, lr_decay, lr_decay_epochs, True) == 0.001
