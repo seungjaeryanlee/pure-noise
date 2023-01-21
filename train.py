@@ -137,7 +137,7 @@ def train(CONFIG):
                               enable_linear_warmup=CONFIG.enable_linear_warmup))
         
         # Save checkpoint
-        if CONFIG.enable_checkpoint and (epoch_i % CONFIG.save_ckpt_every_n_epoch == 0):
+        if CONFIG.save_ckpt and (epoch_i in CONFIG.save_ckpt_epochs):
             checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
             os.makedirs("checkpoints/", exist_ok=True)
             save_checkpoint(net, optimizer, checkpoint_filepath)
