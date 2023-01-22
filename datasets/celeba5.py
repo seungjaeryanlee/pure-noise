@@ -4,7 +4,7 @@ import os
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision.io import read_image
-from .sampling import count_class_frequency, compute_class_weights, compute_sample_weights
+from .sampling import count_class_frequency
 
 CELEBA5_TRAIN_DATASET_PATH = 'data/CelebA5_64x64/train'
 CELEBA5_VALID_DATASET_PATH = 'data/CelebA5_64x64/valid'
@@ -16,8 +16,7 @@ class CelebA5Dataset(Dataset):
     def __init__(self,
                  dataset_path, 
                  transform=None, 
-                 target_transform=None, 
-                 use_effective_num_sample_weights=False):
+                 target_transform=None):
         self.dataset_path = dataset_path
         self.transform = transform
         self.target_transform = target_transform
@@ -31,7 +30,7 @@ class CelebA5Dataset(Dataset):
                 label = int(label)
                 self.img_path_and_labels.append((img_path, label))
         
-        self._set_sample_weights(use_effective_num_sample_weights)
+        self.class_frequency = count_class_frequency(self.get_labels(), self.NUM_CLASSES)
 
     def __len__(self):
         return len(self.img_path_and_labels)
@@ -42,21 +41,13 @@ class CelebA5Dataset(Dataset):
         out_img = self.transform(img) if self.transform else img
         out_label = self.target_transform(label) if self.target_transform else label
         return out_img, out_label
-    
-    def _set_sample_weights(self, use_effective_num_samples):
-        labels = self._get_labels()
-        self.class_frequency = count_class_frequency(labels, self.NUM_CLASSES)
-        self.class_weights = compute_class_weights(self.class_frequency, use_effective_num_samples)
-        self.sample_weights = compute_sample_weights(labels, self.class_weights)
-        
-    def _get_labels(self):
+            
+    def get_labels(self):
         return [label for _, label in self]
 
 
-def build_train_dataset(transform, use_effective_num_sample_weights=False):
-    return CelebA5Dataset(CELEBA5_TRAIN_DATASET_PATH, 
-                          transform=transform, 
-                          use_effective_num_sample_weights=use_effective_num_sample_weights)
+def build_train_dataset(transform):
+    return CelebA5Dataset(CELEBA5_TRAIN_DATASET_PATH, transform=transform)
 
 def build_valid_dataset(transform):
     return CelebA5Dataset(CELEBA5_VALID_DATASET_PATH, transform=transform)

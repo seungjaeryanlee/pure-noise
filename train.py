@@ -11,14 +11,14 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, WeightedRandomSampler
 from torchvision import transforms
 
-from checkpointing import load_checkpoint, save_checkpoint
+from checkpointing import load_checkpoint, load_finished_epoch_from_checkpoint, save_checkpoint
 from initializers import (
-    initialize_lr_scheduler,
+    compute_learning_rate,
+    set_learning_rate,
     initialize_model,
     initialize_transforms,
 )
 from replace_with_pure_noise import replace_with_pure_noise
-
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -31,6 +31,7 @@ def train(CONFIG):
         wandb_run = wandb.init(
             project="pure-noise",
             entity="brianryan",
+            name=None if not CONFIG.wandb_name else CONFIG.wandb_name,
             config=OmegaConf.to_container(CONFIG),
         )
 
@@ -48,9 +49,7 @@ def train(CONFIG):
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
-    train_dataset = build_train_dataset(
-        transform=train_transform, 
-        use_effective_num_sample_weights=CONFIG.oversample_use_effective_num_sample_weights)
+    train_dataset = build_train_dataset(transform=train_transform)
     valid_dataset = build_valid_dataset(transform=valid_transform)
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
@@ -62,9 +61,16 @@ def train(CONFIG):
             num_samples = int(max(train_dataset.class_frequency) * train_dataset.NUM_CLASSES)
         else:
             num_samples = len(train_dataset)
+        
+        from datasets.sampling import compute_class_weights_on_effective_num_samples, compute_sample_weights
+        if CONFIG.oversample_use_effective_num_sample_weights:
+            class_weights = compute_class_weights_on_effective_num_samples(train_dataset.class_frequency)
+        else:
+            class_weights = 1. / train_dataset.class_frequency
+        sample_weights = compute_sample_weights(train_dataset.get_labels(), class_weights)
 
         train_sampler = WeightedRandomSampler(
-            weights=train_dataset.sample_weights,
+            weights=sample_weights,
             num_samples=num_samples, # https://stackoverflow.com/a/67802529
             replacement=True,
         )
@@ -74,8 +80,9 @@ def train(CONFIG):
             shuffle=False,
             batch_size=CONFIG.batch_size,
             num_workers=CONFIG.num_workers,
+            pin_memory=CONFIG.enable_pin_memory,
         )
-        logging.info(f"Initialized WeightedRandomSampler with weights {train_dataset.class_weights}")
+        logging.info(f"Initialized WeightedRandomSampler with weights {class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
 
     train_default_loader = DataLoader(
@@ -83,12 +90,14 @@ def train(CONFIG):
         shuffle=True,
         batch_size=CONFIG.batch_size,
         num_workers=CONFIG.num_workers,
+        pin_memory=CONFIG.enable_pin_memory,
     )
 
     valid_loader = DataLoader(
         valid_dataset,
         batch_size=CONFIG.batch_size,
         num_workers=CONFIG.num_workers,
+        pin_memory=CONFIG.enable_pin_memory,
     )
 
     ######################################### Model #########################################
@@ -108,12 +117,6 @@ def train(CONFIG):
         momentum=CONFIG.momentum,
         weight_decay=CONFIG.weight_decay,
     )
-    scheduler = initialize_lr_scheduler(
-        optimizer,
-        enable_linear_warmup=CONFIG.enable_linear_warmup,
-        lr_decay=CONFIG.lr_decay,
-        lr_decay_epochs=CONFIG.lr_decay_epochs,
-    )
 
     ######################################### Loss #########################################
 
@@ -125,22 +128,24 @@ def train(CONFIG):
         num_samples_per_class = torch.Tensor(train_dataset.class_frequency).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
-
-    start_epoch_i, end_epoch_i = 0, CONFIG.num_epochs
+    
+    start_epoch_i = 0
     if CONFIG.load_ckpt:
+        # Start epoch is one after the checkpointed epoch, because we checkpoint after finishing the epoch.
+        start_epoch_i = load_finished_epoch_from_checkpoint(CONFIG.load_ckpt_filepath) + 1
         load_checkpoint(net, optimizer, CONFIG.load_ckpt_filepath)
-        start_epoch_i += CONFIG.load_ckpt_epoch
-        # end_epoch_i += LOAD_CKPT_EPOCH
-
-    for epoch_i in range(start_epoch_i, end_epoch_i):
+    
+    for epoch_i in range(start_epoch_i, CONFIG.num_epochs):
         print(f'epoch: {epoch_i}')
-        # Save checkpoint
-        # TODO: fix checkpoint error.
-        if CONFIG.enable_checkpoint and (epoch_i % CONFIG.save_ckpt_every_n_epoch == 0):
-            checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
-            os.makedirs("checkpoints/", exist_ok=True)
-            save_checkpoint(net, optimizer, checkpoint_filepath)
-            wandb.save(checkpoint_filepath)
+        
+        # Update learning rate
+        set_learning_rate(optimizer,
+                          compute_learning_rate(
+                              epoch=epoch_i,
+                              default_lr=CONFIG.lr,
+                              lr_decay=CONFIG.lr_decay,
+                              lr_decay_epochs=CONFIG.lr_decay_epochs,
+                              enable_linear_warmup=CONFIG.enable_linear_warmup))
 
         # Choose dataloader
         if CONFIG.enable_oversampling and CONFIG.oversampling_start_epoch <= epoch_i:
@@ -256,8 +261,13 @@ def train(CONFIG):
                 **valid_acc_per_class_dict,
                 "lr": optimizer.param_groups[0]['lr'],
             }, step=epoch_i)
-
-        scheduler.step()
+        
+        # Save checkpoint
+        if CONFIG.save_ckpt and (epoch_i in CONFIG.save_ckpt_epochs):
+            checkpoint_filepath = f"checkpoints/{wandb.run.name}__epoch_{epoch_i}.pt"
+            os.makedirs("checkpoints/", exist_ok=True)
+            save_checkpoint(net, optimizer, checkpoint_filepath, finished_epoch=epoch_i)
+            wandb.save(checkpoint_filepath)
 
         if CONFIG.debug_run:
             break
