@@ -172,8 +172,8 @@ def train(CONFIG):
                         targets=labels,
                         delta=CONFIG.delta,
                         num_samples_per_class=num_samples_per_class,
-                        dataset_mean=dataset_mean,
-                        dataset_std=dataset_std,
+                        dataset_mean=pure_noise_mean,
+                        dataset_std=pure_noise_std,
                         image_size=CONFIG.pure_noise_image_size,
                     )
                 outputs = net(inputs, noise_mask=noise_mask)
