@@ -6,3 +6,6 @@ tensorflow
 tfrecord
 opencv-python
 omegaconf
+seaborn
+matplotlib
+scikit-learn

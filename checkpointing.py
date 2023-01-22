@@ -21,7 +21,8 @@ def load_checkpoint(
 ):
     checkpoint = torch.load(checkpoint_filepath)
     model.load_state_dict(checkpoint['model_state_dict'])
-    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    if optimizer is not None:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
     
 def load_finished_epoch_from_checkpoint(checkpoint_filepath: str):
