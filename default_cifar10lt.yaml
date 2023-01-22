@@ -1,5 +1,5 @@
 # Dataset
-dataset: "CIFAR-10-LT" # "CIFAR-10-LT" or "CelebA-5"
+dataset: "CIFAR-10-LT" # "CIFAR-10-LT" or "CelebA-5" or "CIFAR-10"
 train_transform_reprs:
 - "ConvertImageDtype(float)"
 - "RandomHorizontalFlip()"
@@ -29,6 +29,7 @@ weight_decay: 2.0e-4
 lr_decay: 0.01
 lr_decay_epochs: [160, 180]
 enable_linear_warmup: False
+use_adam: False
 
 # Logging
 enable_wandb: True

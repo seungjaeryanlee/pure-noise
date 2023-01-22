@@ -29,6 +29,8 @@ weight_decay: 2.0e-4
 lr_decay: 0.01
 lr_decay_epochs: [160, 180]
 enable_linear_warmup: False
+use_adam: True
+adam_betas: [0.9, 0.999]
 
 # Logging
 enable_wandb: True
