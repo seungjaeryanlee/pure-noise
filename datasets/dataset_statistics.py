@@ -17,25 +17,34 @@ def ir_ratio(dataset):
     return max(label_to_count) / min(label_to_count)
 
 if __name__ == '__main__':
-    from celeba5 import CelebA5Dataset, CELEBA5_TRAIN_DATASET_PATH
-    from cifar10 import CIFAR10LTDataset
+    from .celeba5 import CelebA5Dataset, CELEBA5_TRAIN_DATASET_PATH
+    from .cifar10lt import CIFAR10LTDataset
+    from .cifar10 import CIFAR10Dataset
     from torchvision import transforms
-
+    
+    def compute_for_dataset(dataset):
+        print(f"IR ratio: {ir_ratio(dataset)}")
+        mean, std = dataset_mean_and_std(dataset)
+        print(f"Mean: {mean}, Std: {std}")
+        
+    print("CelebA-5")
     celeba5_dataset = CelebA5Dataset(
         dataset_path=CELEBA5_TRAIN_DATASET_PATH,
         transform=transforms.ToTensor(),
     )
-    print(f"CelebA-5 IR ratio: {ir_ratio(celeba5_dataset)}")
-    mean, std = dataset_mean_and_std(celeba5_dataset)
-    print(f"CelebA-5 Mean: {mean}")
-    print(f"CelebA-5 Std: {std}")
+    compute_for_dataset(celeba5_dataset)
 
+    print("CIFAR10 Long-Tailed")
     cifar10lt_dataset = CIFAR10LTDataset(
         json_filepath = "data/json/cifar10_imbalance100/cifar10_imbalance100_train.json",
         images_dirpath = "data/json/cifar10_imbalance100/images/",
         transform=transforms.ConvertImageDtype(float),
     )
-    print(f"CIFAR-10-LT IR ratio: {ir_ratio(celeba5_dataset)}")
-    mean, std = dataset_mean_and_std(cifar10lt_dataset)
-    print(f"CIFAR-10-LT Mean: {mean}")
-    print(f"CIFAR-10-LT Std: {std}")
+    compute_for_dataset(cifar10lt_dataset)
+    
+    print("Balanced CIFAR10")
+    cifar10_dataset = CIFAR10Dataset(
+        transform=transforms.ToTensor(),
+        train=True
+    )
+    compute_for_dataset(cifar10_dataset)
