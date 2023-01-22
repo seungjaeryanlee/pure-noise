@@ -45,7 +45,7 @@ def train(CONFIG):
     if CONFIG.dataset == 'CelebA-5':
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
     elif CONFIG.dataset == "CIFAR-10-LT":
-        from datasets.cifar10 import build_train_dataset, build_valid_dataset
+        from datasets.cifar10lt import build_train_dataset, build_valid_dataset
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
