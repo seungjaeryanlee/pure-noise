@@ -1,5 +1,5 @@
 # Dataset
-dataset: "CelebA-5" # "CIFAR-10-LT" or "CelebA-5"
+dataset: "CelebA-5" # "CIFAR-10-LT" or "CelebA-5" or "CIFAR-10"
 train_transform_reprs:
 - "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
@@ -29,14 +29,15 @@ weight_decay: 2.0e-4
 lr_decay: 0.1
 lr_decay_epochs: [30, 60]
 enable_linear_warmup: False
+use_adam: False
 
 # Logging
 enable_wandb: True
 wandb_name: ""
 
 # Checkpoint
-save_ckpt: False
-save_ckpt_epochs: [29, 49]
+save_ckpt: True
+save_ckpt_epochs: [29, 49, 89]
 load_ckpt: False
 load_ckpt_filepath: "checkpoints/.pt"
 

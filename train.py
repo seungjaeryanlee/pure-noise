@@ -45,6 +45,8 @@ def train(CONFIG):
     if CONFIG.dataset == 'CelebA-5':
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
     elif CONFIG.dataset == "CIFAR-10-LT":
+        from datasets.cifar10lt import build_train_dataset, build_valid_dataset
+    elif CONFIG.dataset == "CIFAR-10":
         from datasets.cifar10 import build_train_dataset, build_valid_dataset
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
@@ -117,6 +119,12 @@ def train(CONFIG):
         momentum=CONFIG.momentum,
         weight_decay=CONFIG.weight_decay,
     )
+    if CONFIG.use_adam:
+        optimizer = optim.Adam(
+            net.parameters(), 
+            lr=CONFIG.lr, 
+            betas=CONFIG.adam_betas,
+            weight_decay=CONFIG.weight_decay)
 
     ######################################### Loss #########################################
 

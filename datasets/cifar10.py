@@ -5,62 +5,40 @@ import numpy as np
 
 from torch.utils.data import Dataset
 from torchvision.io import read_image
+from torchvision.datasets import CIFAR10
 from .sampling import count_class_frequency
 
-
-CIFAR10LT_TRAIN_JSON_FILEPATH = "data/json/cifar10_imbalance100/cifar10_imbalance100_train.json"
-CIFAR10LT_TRAIN_IMAGES_DIRPATH = "data/json/cifar10_imbalance100/images/"
-CIFAR10LT_VALID_JSON_FILEPATH = "data/json/cifar10_imbalance100/cifar10_imbalance100_valid.json"
-CIFAR10LT_VALID_IMAGES_DIRPATH = "data/json/cifar10_imbalance100/images/"
-
-
-class CIFAR10LTDataset(Dataset):
+class CIFAR10Dataset(CIFAR10):
+    CIFAR10_ROOT = "data/cifar10"
     NUM_CLASSES = 10
     
-    def __init__(self, 
-                 json_filepath, 
-                 images_dirpath, 
-                 transform=None, 
-                 target_transform=None):
-        self.json_filepath = json_filepath
-        self.images_dirpath = images_dirpath
-        self.transform = transform
-        self.target_transform = target_transform
-
-        with open(self.json_filepath, "r")as f:
-            self.json_data = json.load(f)
-            
+    def __init__(self, **kwargs):
+        super().__init__(root=self.CIFAR10_ROOT, download=True, **kwargs)
+        
         self.class_frequency = count_class_frequency(self.get_labels(), self.NUM_CLASSES)
-
-    def __len__(self):
-        return len(self.json_data["annotations"])
-
-    def __getitem__(self, idx):
-        label = self.json_data["annotations"][idx]["category_id"]
-        image_filepath = self.json_data["annotations"][idx]["fpath"]
-        image = read_image(image_filepath)
-
-        if self.transform:
-            image = self.transform(image)
-        if self.target_transform:
-            label = self.target_transform(label)
-
-        return image, label
     
     def get_labels(self):
         return [label for _, label in self]
 
 
 def build_train_dataset(transform):
-    return CIFAR10LTDataset(
-        json_filepath=CIFAR10LT_TRAIN_JSON_FILEPATH,
-        images_dirpath=CIFAR10LT_TRAIN_IMAGES_DIRPATH,
-        transform=transform,
-    )
+    return CIFAR10Dataset(train=True, transform=transform)
 
 def build_valid_dataset(transform):
-    return CIFAR10LTDataset(
-        json_filepath=CIFAR10LT_VALID_JSON_FILEPATH,
-        images_dirpath=CIFAR10LT_VALID_IMAGES_DIRPATH,
-        transform=transform,
-    )
+    return CIFAR10Dataset(train=False, transform=transform)
+
+if __name__ == '__main__':
+    import torch
+    from torchvision import transforms
+    train_dataset = build_train_dataset(transform=transforms.Compose([transforms.RandomHorizontalFlip(), transforms.RandomCrop(32, padding=4), transforms.ToTensor()]))
+    valid_dataset = build_valid_dataset(transform=transforms.Compose([transforms.ToTensor()]))
+    
+    assert len(train_dataset) == 50000
+    assert len(valid_dataset) == 10000
+    
+    img, label = train_dataset[0]
+    assert img.shape == torch.Size([3, 32, 32])
+    assert isinstance(label, int)
+    
+    print('Finished checking dataset')
+    
