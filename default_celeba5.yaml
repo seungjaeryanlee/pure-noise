@@ -15,7 +15,7 @@ batch_size: 128
 enable_oversampling: False
 oversampling_start_epoch: 30
 oversample_majority_class_num_samples: False
-oversample_use_effective_num_sample_weights: True
+oversample_use_effective_num_sample_weights: False
 enable_pin_memory: False
 
 # Model
@@ -28,7 +28,7 @@ momentum: 0.9
 weight_decay: 2.0e-4
 lr_decay: 0.1
 lr_decay_epochs: [30, 60]
-enable_linear_warmup: False
+enable_linear_warmup: True
 use_adam: False
 
 # Logging
