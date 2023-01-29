@@ -20,8 +20,13 @@ from initializers import (
 )
 from replace_with_pure_noise import replace_with_pure_noise
 
+from torchvision.datasets import CIFAR10, CIFAR100
+from datasets.imbalanced_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
+from datasets.sampling import count_class_frequency, compute_class_weights_on_effective_num_samples, compute_sample_weights
+
 logging.getLogger().setLevel(logging.INFO)
 
+DATA_ROOT = './data'
 
 def train(CONFIG):
     # Wandb
@@ -46,14 +51,19 @@ def train(CONFIG):
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
         train_dataset = build_train_dataset(transform=train_transform)
         valid_dataset = build_valid_dataset(transform=valid_transform)
+        NUM_CLASSES = 5
     elif CONFIG.dataset == "CIFAR-10-LT":
-        from datasets.imbalanced_cifar import IMBALANCECIFAR10
-        train_dataset = IMBALANCECIFAR10(transform=train_transform, train=True, download=True)
-        valid_dataset = IMBALANCECIFAR10(transform=valid_transform, train=False, download=True)
+        train_dataset = IMBALANCECIFAR10(root=DATA_ROOT, train=True transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
+        valid_dataset = CIFAR10(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
+        NUM_CLASSES = 10
     elif CONFIG.dataset == "CIFAR-10":
-        from datasets.cifar10 import build_train_dataset, build_valid_dataset
-        train_dataset = build_train_dataset(transform=train_transform)
-        valid_dataset = build_valid_dataset(transform=valid_transform)
+        train_dataset = CIFAR10(root=DATA_ROOT, train=True, transform=train_transform, download=True)
+        valid_dataset = CIFAR10(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
+        NUM_CLASSES = 10
+    elif CONFIG.dataset == "CIFAR-100-LT":
+        train_dataset = IMBALANCECIFAR100(root=DATA_ROOT, train=True transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
+        valid_dataset = CIFAR100(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
+        NUM_CLASSES = 100
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
@@ -74,17 +84,19 @@ def train(CONFIG):
         pin_memory=CONFIG.enable_pin_memory,
     )
     
+    if CONFIG.enable_oversampling or CONFIG.enable_open:
+        class_frequency = count_class_frequency(train_dataset.targets, NUM_CLASSES)
+    
     if CONFIG.enable_oversampling:
         if CONFIG.oversample_majority_class_num_samples:
-            num_samples = int(max(train_dataset.class_frequency) * train_dataset.NUM_CLASSES)
+            num_samples = int(max(class_frequency) * NUM_CLASSES)
         else:
             num_samples = len(train_dataset)
         
-        from datasets.sampling import compute_class_weights_on_effective_num_samples, compute_sample_weights
         if CONFIG.oversample_use_effective_num_sample_weights:
-            class_weights = compute_class_weights_on_effective_num_samples(train_dataset.class_frequency)
+            class_weights = compute_class_weights_on_effective_num_samples(class_frequency)
         else:
-            class_weights = 1. / train_dataset.class_frequency
+            class_weights = 1. / class_frequency
         sample_weights = compute_sample_weights(train_dataset.get_labels(), class_weights)
 
         train_sampler = WeightedRandomSampler(
@@ -107,7 +119,7 @@ def train(CONFIG):
 
     net = initialize_model(
         model_name=CONFIG.model, 
-        num_classes=train_dataset.NUM_CLASSES, 
+        num_classes=NUM_CLASSES, 
         enable_dar_bn=CONFIG.enable_open, 
         dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
@@ -134,7 +146,7 @@ def train(CONFIG):
     ######################################### Training #########################################
 
     if CONFIG.enable_open:
-        num_samples_per_class = torch.Tensor(train_dataset.class_frequency).to(device)
+        num_samples_per_class = torch.Tensor(class_frequency).to(device)
         pure_noise_mean = torch.Tensor(CONFIG.pure_noise_mean).to(device)
         pure_noise_std = torch.Tensor(CONFIG.pure_noise_std).to(device)
     
@@ -207,12 +219,12 @@ def train(CONFIG):
         # Filter losses by classes
         train_loss_per_class_dict = {
             f"train_loss__class_{class_}": train_losses[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(train_dataset.NUM_CLASSES)
+            for class_ in np.arange(NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         train_acc_per_class_dict = {
             f"train_acc__class_{class_}": (train_preds == train_labels)[np.where(train_labels == class_)[0]].mean()
-            for class_ in np.arange(train_dataset.NUM_CLASSES)
+            for class_ in np.arange(NUM_CLASSES)
         }
 
         ## Validation Phase
@@ -248,12 +260,12 @@ def train(CONFIG):
         # Filter losses by classes
         valid_loss_per_class_dict = {
             f"valid_loss__class_{class_}": valid_losses[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(train_dataset.NUM_CLASSES)
+            for class_ in np.arange(NUM_CLASSES)
         }
         # Filter preds by classes for accuracy
         valid_acc_per_class_dict = {
             f"valid_acc__class_{class_}": (valid_preds == valid_labels)[np.where(valid_labels == class_)[0]].mean()
-            for class_ in np.arange(train_dataset.NUM_CLASSES)
+            for class_ in np.arange(NUM_CLASSES)
         }
 
         # Logging

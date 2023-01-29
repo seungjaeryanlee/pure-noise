@@ -1,7 +1,7 @@
 """
-Imbalanced CIFAR10 dataset from LDAM-DRW (Cao et al., 2019).
+Imbalanced CIFAR-10 dataset from LDAM-DRW (Cao et al., 2019).
 
-From https://github.com/kaidic/LDAM-DRW/blob/2536330f2afdaa65618323cb5a5850efccce762a/imbalance_cifar.py
+Modified from https://github.com/kaidic/LDAM-DRW/blob/master/imbalance_cifar.py
 """
 import torch
 import torchvision
@@ -10,22 +10,24 @@ import numpy as np
 
 class IMBALANCECIFAR10(torchvision.datasets.CIFAR10):
     cls_num = 10
-    NUM_CLASSES = 10
 
-    def __init__(self, root='data/cifar10lt', imb_type='exp', imb_factor=0.01, rand_number=0, train=True,
+    def __init__(self, root, imb_type='exp', ir_ratio=100, rand_number=0, train=True,
                  transform=None, target_transform=None,
                  download=False):
         super(IMBALANCECIFAR10, self).__init__(root, train, transform, target_transform, download)
         np.random.seed(rand_number)
-        img_num_list = self.get_img_num_per_cls(self.cls_num, imb_type, imb_factor)
+        img_num_list = self.get_img_num_per_cls(self.cls_num, imb_type, 1. / ir_ratio)
         self.gen_imbalanced_data(img_num_list)
 
-    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor): # Args: 10, 'exp', 0.01
-        img_max = len(self.data) / cls_num # 5K
+    def get_img_num_per_cls(self, cls_num, imb_type, imb_factor):
+        img_max = len(self.data) / cls_num
         img_num_per_cls = []
-        if imb_type == 'exp': 
+        if imb_type == 'exp':
+            # Cui et al., 2019:
+            # n_i = n_cifar_i * (mu ** i),
+            # where mu is chosen based on imbalance factor (i.e. IR ratio, n_0 / n_last).
             for cls_idx in range(cls_num):
-                num = img_max * (imb_factor**(cls_idx / (cls_num - 1.0))) # 5K * (0.01 ** (0 / 9))
+                num = img_max * (imb_factor**(cls_idx / (cls_num - 1.0)))
                 img_num_per_cls.append(int(num))
         elif imb_type == 'step':
             for cls_idx in range(cls_num // 2):
