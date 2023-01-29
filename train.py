@@ -51,6 +51,7 @@ def train(CONFIG):
     else:
         raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
 
+    from datasets.cifar10 import build_train_dataset, build_valid_dataset
     train_dataset = build_train_dataset(transform=train_transform)
     valid_dataset = build_valid_dataset(transform=valid_transform)
 
@@ -86,21 +87,34 @@ def train(CONFIG):
         )
         logging.info(f"Initialized WeightedRandomSampler with weights {class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
+        
+    #     train_default_loader = DataLoader(
+    #         train_dataset,
+    #         shuffle=True,
+    #         batch_size=CONFIG.batch_size,
+    #         num_workers=CONFIG.num_workers,
+    #         pin_memory=CONFIG.enable_pin_memory,
+    #     )
 
-    train_default_loader = DataLoader(
-        train_dataset,
-        shuffle=True,
-        batch_size=CONFIG.batch_size,
-        num_workers=CONFIG.num_workers,
-        pin_memory=CONFIG.enable_pin_memory,
-    )
+    #     valid_loader = DataLoader(
+    #         valid_dataset,
+    #         batch_size=CONFIG.batch_size,
+    #         num_workers=CONFIG.num_workers,
+    #         pin_memory=CONFIG.enable_pin_memory,
+    #     )
+    
+    from m2m_data_loader import make_longtailed_imb, get_imbalanced
+    N_CLASSES = 10
+    N_SAMPLES = 5000
+    N_SAMPLES_PER_CLASS_BASE = [int(N_SAMPLES)] * N_CLASSES
+    N_SAMPLES_PER_CLASS_BASE = make_longtailed_imb(N_SAMPLES, N_CLASSES, 100)
+    N_SAMPLES_PER_CLASS_BASE = tuple(N_SAMPLES_PER_CLASS_BASE)
+    print(N_SAMPLES_PER_CLASS_BASE)
 
-    valid_loader = DataLoader(
-        valid_dataset,
-        batch_size=CONFIG.batch_size,
-        num_workers=CONFIG.num_workers,
-        pin_memory=CONFIG.enable_pin_memory,
-    )
+    train_default_loader, valid_loader, test_loader = get_imbalanced(train_dataset, valid_dataset, N_SAMPLES_PER_CLASS_BASE)
+
+    # N_SAMPLES_PER_CLASS = N_SAMPLES_PER_CLASS_BASE
+    # N_SAMPLES_PER_CLASS_T = torch.Tensor(N_SAMPLES_PER_CLASS).to(device)
 
     ######################################### Model #########################################
 

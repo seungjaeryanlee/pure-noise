@@ -1,13 +1,13 @@
 # Dataset
 dataset: "CIFAR-10-LT" # "CIFAR-10-LT" or "CelebA-5" or "CIFAR-10"
 train_transform_reprs:
-- "ConvertImageDtype(float)"
-- "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
-- "Normalize((0.4988, 0.5040, 0.4926), (0.2498, 0.2480, 0.2718))"
+- "RandomHorizontalFlip()"
+- "ToTensor()"
+- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 valid_transform_reprs:
-- "ConvertImageDtype(float)"
-- "Normalize((0.4988, 0.5040, 0.4926), (0.2498, 0.2480, 0.2718))"
+- "ToTensor()"
+- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 
 # DataLoader
 num_workers: 8
@@ -47,8 +47,8 @@ num_epochs: 200
 # OPeN
 enable_open: False
 delta: 0.333333333333333333333333333333333333
-pure_noise_mean: [0.4988, 0.5040, 0.4926]
-pure_noise_std: [0.2498, 0.2480, 0.2718]
+pure_noise_mean: [0.4914, 0.4822, 0.4465]
+pure_noise_std: [0.2023, 0.1994, 0.2010]
 pure_noise_image_size: 32
 open_start_epoch: 160
 
