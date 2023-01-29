@@ -44,21 +44,36 @@ def train(CONFIG):
 
     if CONFIG.dataset == 'CelebA-5':
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
+        train_dataset = build_train_dataset(transform=train_transform)
+        valid_dataset = build_valid_dataset(transform=valid_transform)
     elif CONFIG.dataset == "CIFAR-10-LT":
-        from datasets.cifar10lt import build_train_dataset, build_valid_dataset
+        from datasets.imbalanced_cifar import IMBALANCECIFAR10
+        train_dataset = IMBALANCECIFAR10(transform=train_transform, train=True, download=True)
+        valid_dataset = IMBALANCECIFAR10(transform=valid_transform, train=False, download=True)
     elif CONFIG.dataset == "CIFAR-10":
         from datasets.cifar10 import build_train_dataset, build_valid_dataset
-    else:
-        raise ValueError(f"{CONFIG.dataset} is not a supported dataset name.")
-
-    from datasets.cifar10 import build_train_dataset, build_valid_dataset
-    train_dataset = build_train_dataset(transform=train_transform)
-    valid_dataset = build_valid_dataset(transform=valid_transform)
+        train_dataset = build_train_dataset(transform=train_transform)
+        valid_dataset = build_valid_dataset(transform=valid_transform)
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
     ######################################### DataLoader ############################################
+    
+    train_default_loader = DataLoader(
+        train_dataset,
+        shuffle=True,
+        batch_size=CONFIG.batch_size,
+        num_workers=CONFIG.num_workers,
+        pin_memory=CONFIG.enable_pin_memory,
+    )
 
+    valid_loader = DataLoader(
+        valid_dataset,
+        batch_size=CONFIG.batch_size,
+        num_workers=CONFIG.num_workers,
+        pin_memory=CONFIG.enable_pin_memory,
+    )
+    
     if CONFIG.enable_oversampling:
         if CONFIG.oversample_majority_class_num_samples:
             num_samples = int(max(train_dataset.class_frequency) * train_dataset.NUM_CLASSES)
@@ -87,34 +102,6 @@ def train(CONFIG):
         )
         logging.info(f"Initialized WeightedRandomSampler with weights {class_weights}")
         logging.info(f"From epoch {CONFIG.oversampling_start_epoch}, each epoch has {num_samples} samples.")
-        
-    #     train_default_loader = DataLoader(
-    #         train_dataset,
-    #         shuffle=True,
-    #         batch_size=CONFIG.batch_size,
-    #         num_workers=CONFIG.num_workers,
-    #         pin_memory=CONFIG.enable_pin_memory,
-    #     )
-
-    #     valid_loader = DataLoader(
-    #         valid_dataset,
-    #         batch_size=CONFIG.batch_size,
-    #         num_workers=CONFIG.num_workers,
-    #         pin_memory=CONFIG.enable_pin_memory,
-    #     )
-    
-    from m2m_data_loader import make_longtailed_imb, get_imbalanced
-    N_CLASSES = 10
-    N_SAMPLES = 5000
-    N_SAMPLES_PER_CLASS_BASE = [int(N_SAMPLES)] * N_CLASSES
-    N_SAMPLES_PER_CLASS_BASE = make_longtailed_imb(N_SAMPLES, N_CLASSES, 100)
-    N_SAMPLES_PER_CLASS_BASE = tuple(N_SAMPLES_PER_CLASS_BASE)
-    print(N_SAMPLES_PER_CLASS_BASE)
-
-    train_default_loader, valid_loader, test_loader = get_imbalanced(train_dataset, valid_dataset, N_SAMPLES_PER_CLASS_BASE)
-
-    # N_SAMPLES_PER_CLASS = N_SAMPLES_PER_CLASS_BASE
-    # N_SAMPLES_PER_CLASS_T = torch.Tensor(N_SAMPLES_PER_CLASS).to(device)
 
     ######################################### Model #########################################
 

@@ -1,4 +1,4 @@
-WANDB_NAME='m2m-data-0128'
+WANDB_NAME='ldam-data-0129'
 
 # ERM
 python train.py wandb_name="${WANDB_NAME}"
