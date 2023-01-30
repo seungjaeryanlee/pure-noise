@@ -1,7 +1,7 @@
 WANDB_NAME='ldam-data-0129'
 
 # ERM
-python train.py wandb_name="${WANDB_NAME}"
+# python train.py wandb_name="${WANDB_NAME}"
 
 # Oversampling
 python train.py wandb_name="${WANDB_NAME}-rs" \
