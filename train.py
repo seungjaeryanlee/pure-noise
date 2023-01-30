@@ -53,7 +53,7 @@ def train(CONFIG):
         valid_dataset = build_valid_dataset(transform=valid_transform)
         NUM_CLASSES = 5
     elif CONFIG.dataset == "CIFAR-10-LT":
-        train_dataset = IMBALANCECIFAR10(root=DATA_ROOT, train=True transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
+        train_dataset = IMBALANCECIFAR10(root=DATA_ROOT, train=True, transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
         valid_dataset = CIFAR10(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
         NUM_CLASSES = 10
     elif CONFIG.dataset == "CIFAR-10":
@@ -61,7 +61,7 @@ def train(CONFIG):
         valid_dataset = CIFAR10(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
         NUM_CLASSES = 10
     elif CONFIG.dataset == "CIFAR-100-LT":
-        train_dataset = IMBALANCECIFAR100(root=DATA_ROOT, train=True transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
+        train_dataset = IMBALANCECIFAR100(root=DATA_ROOT, train=True, transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
         valid_dataset = CIFAR100(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
         NUM_CLASSES = 100
 
@@ -97,7 +97,7 @@ def train(CONFIG):
             class_weights = compute_class_weights_on_effective_num_samples(class_frequency)
         else:
             class_weights = 1. / class_frequency
-        sample_weights = compute_sample_weights(train_dataset.get_labels(), class_weights)
+        sample_weights = compute_sample_weights(train_dataset.targets, class_weights)
 
         train_sampler = WeightedRandomSampler(
             weights=sample_weights,
