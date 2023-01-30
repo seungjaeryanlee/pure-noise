@@ -10,9 +10,7 @@ CELEBA5_TRAIN_DATASET_PATH = 'data/CelebA5_64x64/train'
 CELEBA5_VALID_DATASET_PATH = 'data/CelebA5_64x64/valid'
 CELEBA5_TEST_DATASET_PATH = 'data/CelebA5_64x64/test'
 
-class CelebA5Dataset(Dataset):
-    NUM_CLASSES = 5
-    
+class CelebA5Dataset(Dataset):    
     def __init__(self,
                  dataset_path, 
                  transform=None, 
@@ -30,7 +28,7 @@ class CelebA5Dataset(Dataset):
                 label = int(label)
                 self.img_path_and_labels.append((img_path, label))
         
-        self.class_frequency = count_class_frequency(self.get_labels(), self.NUM_CLASSES)
+        self.targets = [label for _, label in self]
 
     def __len__(self):
         return len(self.img_path_and_labels)
@@ -41,9 +39,6 @@ class CelebA5Dataset(Dataset):
         out_img = self.transform(img) if self.transform else img
         out_label = self.target_transform(label) if self.target_transform else label
         return out_img, out_label
-            
-    def get_labels(self):
-        return [label for _, label in self]
 
 
 def build_train_dataset(transform):
