@@ -27,6 +27,7 @@ dropout_rate: 0.3
 lr: 0.1
 momentum: 0.9
 weight_decay: 2.0e-4
+enable_lr_decay: True
 lr_decay: 0.01
 lr_decay_epochs: [160, 180]
 enable_linear_warmup: True

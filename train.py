@@ -166,7 +166,8 @@ def train(CONFIG):
                               default_lr=CONFIG.lr,
                               lr_decay=CONFIG.lr_decay,
                               lr_decay_epochs=CONFIG.lr_decay_epochs,
-                              enable_linear_warmup=CONFIG.enable_linear_warmup))
+                              enable_linear_warmup=CONFIG.enable_linear_warmup,
+                              enable_lr_decay=CONFIG.enable_lr_decay))
 
         # Choose dataloader
         if CONFIG.enable_oversampling and CONFIG.oversampling_start_epoch <= epoch_i:

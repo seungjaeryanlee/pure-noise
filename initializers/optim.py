@@ -40,12 +40,13 @@ def compute_learning_rate(
     default_lr,
     lr_decay, 
     lr_decay_epochs, 
-    enable_linear_warmup):
+    enable_linear_warmup,
+    enable_lr_decay):
     if enable_linear_warmup and (epoch < 5):
         return default_lr * (epoch + 1) / 5
-    elif epoch >= lr_decay_epochs[1]:
+    if enable_lr_decay and epoch >= lr_decay_epochs[1]:
         return default_lr * (lr_decay ** 2)
-    elif epoch >= lr_decay_epochs[0]:
+    if enable_lr_decay and epoch >= lr_decay_epochs[0]:
         return default_lr * (lr_decay)
     else:
         return default_lr

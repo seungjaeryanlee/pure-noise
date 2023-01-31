@@ -14,24 +14,45 @@ def compute_sample_weights(labels, class_weights):
     return np.array([class_weights[label] for label in labels])
     
 if __name__ == '__main__':
-    from cifar10 import CIFAR10LTDataset
+    from .celeba5 import CELEBA5_TRAIN_DATASET_PATH, CelebA5Dataset
+    from .imbalanced_cifar import IMBALANCECIFAR10
+    from torchvision.datasets import CIFAR10, CIFAR100
     from torchvision import transforms
+    
+    np.set_printoptions(precision=4)
 
-    dataset = CIFAR10LTDataset(
-        json_filepath = "data/json/cifar10_imbalance100/cifar10_imbalance100_train.json",
-        images_dirpath = "data/json/cifar10_imbalance100/images/",
-        transform=transforms.ConvertImageDtype(float),
+    def compute_for_dataset(dataset, num_classes):
+        class_frequency = count_class_frequency(dataset.targets, num_classes)
+        print(f"Class frequency: {class_frequency}")
+        
+        class_weights = 1. / class_frequency
+        sample_weights = compute_sample_weights(dataset.targets, class_weights)
+        print(f"Class weights, inverse frequency: {class_weights}")
+        print(f"Example sample weights, inverse frequency: {sample_weights[:10]}")
+        
+        class_weights = compute_class_weights_on_effective_num_samples(class_frequency)
+        sample_weights = compute_sample_weights(dataset.targets, class_weights)
+        print(f"Class weights, effective number of samples: {class_weights}")
+        print(f"Example sample weights, effective number of samples: {sample_weights[:10]}")
+        
+    print("CelebA-5")
+    celeba5_dataset = CelebA5Dataset(
+        dataset_path=CELEBA5_TRAIN_DATASET_PATH,
+        transform=transforms.ToTensor(),
     )
+    compute_for_dataset(celeba5_dataset, 5)
+
+    print("CIFAR10 Long-Tailed")
+    cifar10lt_dataset = IMBALANCECIFAR10(
+        root="data/",
+        transform=transforms.ToTensor()
+    )
+    compute_for_dataset(cifar10lt_dataset, 10)
     
-    labels = [label for _, label in dataset]
-    class_frequency = count_class_frequency(labels, dataset.NUM_CLASSES)
-    
-    class_weights = 1. / class_frequency
-    sample_weights = compute_sample_weights(labels, class_weights)
-    print(f"Class weights: {class_weights}")
-    print(f"Sample weights: {sample_weights[:10]}")
-    
-    class_weights = compute_class_weights_on_effective_num_samples(class_frequency)
-    sample_weights = compute_sample_weights(labels, class_weights)
-    print(f"Class weights on effective num samples: {class_weights}")
-    print(f"Sample weights on effective num samples: {sample_weights[:10]}")
+    print("Balanced CIFAR10")
+    cifar10_dataset = CIFAR10(
+        root="data/",
+        transform=transforms.ToTensor(),
+        train=True
+    )
+    compute_for_dataset(cifar10_dataset, 10)
