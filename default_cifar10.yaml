@@ -4,10 +4,10 @@ train_transform_reprs:
 - "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
 - "ToTensor()"
-- "Normalize((0.491400808095932, 0.48215898871421814, 0.44653093814849854), (0.24703224003314972, 0.24348513782024384, 0.26158785820007324))"
+- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 valid_transform_reprs:
 - "ToTensor()"
-- "Normalize((0.491400808095932, 0.48215898871421814, 0.44653093814849854), (0.24703224003314972, 0.24348513782024384, 0.26158785820007324))"
+- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 
 # DataLoader
 num_workers: 8
@@ -23,12 +23,13 @@ model: "WideResNet-28-10-torchdistill" # "ResNet-32-m2m" or "ResNet-32-akamaster
 dropout_rate: 0.3
 
 # Optimizer
-lr: 0.1
+lr: 0.001
 momentum: 0.9
 weight_decay: 2.0e-4
-lr_decay: 0.01
-lr_decay_epochs: [160, 180]
-enable_linear_warmup: True
+enable_lr_decay: False
+lr_decay: 
+lr_decay_epochs: 
+enable_linear_warmup: False
 use_adam: True
 adam_betas: [0.9, 0.999]
 
@@ -48,8 +49,8 @@ num_epochs: 200
 # OPeN
 enable_open: False
 delta: 0.333333333333333333333333333333333333
-pure_noise_mean: [0.491400808095932, 0.48215898871421814, 0.44653093814849854]
-pure_noise_std: [0.24703224003314972, 0.24348513782024384, 0.26158785820007324]
+pure_noise_mean: [0.4914, 0.4822, 0.4465]
+pure_noise_std: [0.2023, 0.1994, 0.2010]
 pure_noise_image_size: 32
 open_start_epoch: 160
 
