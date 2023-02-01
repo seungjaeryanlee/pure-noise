@@ -1,6 +1,8 @@
 ### Reproduce Figure 3 (data augmentation ablation study) in the paper.
+# Model: WideResNet 
+# Dataset: CIFAR-10-LT
 
-# ### HorizontalFlip + RandomCrop
+### HorizontalFlip + RandomCrop
 WANDB_NAME='flipcrop-0201'
 
 # ERM
