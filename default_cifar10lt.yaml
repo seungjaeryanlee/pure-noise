@@ -2,8 +2,8 @@
 dataset: "CIFAR-10-LT" # "CIFAR-10-LT" or "CelebA-5" or "CIFAR-10"
 ir_ratio: 100
 train_transform_reprs:
-- "RandomCrop(32, padding=4)"
 - "RandomHorizontalFlip()"
+- "RandomCrop(32, padding=4)"
 - "ToTensor()"
 valid_transform_reprs:
 - "ToTensor()"
