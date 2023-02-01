@@ -1,4 +1,4 @@
-WANDB_NAME='ldam-data-0129'
+WANDB_NAME='normalizer-resnet-0131'
 
 # ERM
 python train.py wandb_name="${WANDB_NAME}"

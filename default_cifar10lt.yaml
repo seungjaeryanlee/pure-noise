@@ -5,10 +5,12 @@ train_transform_reprs:
 - "RandomCrop(32, padding=4)"
 - "RandomHorizontalFlip()"
 - "ToTensor()"
-- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 valid_transform_reprs:
 - "ToTensor()"
-- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
+
+# Mean and std for normalization
+normalize_mean: [0.4914, 0.4822, 0.4465]
+normalize_std: [0.2023, 0.1994, 0.2010]
 
 # DataLoader
 num_workers: 8
@@ -20,7 +22,7 @@ oversample_use_effective_num_sample_weights: False
 enable_pin_memory: False
 
 # Model
-model: "WideResNet-28-10-torchdistill" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
+model: "ResNet-32-akamaster" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
 dropout_rate: 0.3
 
 # Optimizer
@@ -35,6 +37,8 @@ use_adam: False
 
 # Logging
 enable_wandb: True
+wandb_entity: "mlrc-pure-noise"
+wandb_project: "pure-noise"
 wandb_name: ""
 
 # Checkpoint
