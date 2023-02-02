@@ -17,6 +17,7 @@ from initializers import (
     set_learning_rate,
     initialize_model,
     initialize_transforms,
+    InputNormalize,
 )
 from replace_with_pure_noise import replace_with_pure_noise
 
@@ -34,8 +35,8 @@ def train(CONFIG):
         import wandb
         wandb.login()
         wandb_run = wandb.init(
-            project="pure-noise",
-            entity="brianryan",
+            entity=CONFIG.wandb_entity,
+            project=CONFIG.wandb_project,
             name=None if not CONFIG.wandb_name else CONFIG.wandb_name,
             config=OmegaConf.to_container(CONFIG),
         )
@@ -123,6 +124,11 @@ def train(CONFIG):
         enable_dar_bn=CONFIG.enable_open, 
         dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
+    
+    normalizer = InputNormalize(
+        torch.Tensor(CONFIG.normalize_mean).to(device), 
+        torch.Tensor(CONFIG.normalize_std).to(device)
+    ).to(device)
 
     ######################################### Optimizer #########################################
 
@@ -183,6 +189,8 @@ def train(CONFIG):
         for minibatch_i, (inputs, labels) in enumerate(train_loader):
             inputs = inputs.float().to(device)
             labels = labels.to(device)
+            
+            inputs = normalizer(inputs)
 
             optimizer.zero_grad()
             if CONFIG.enable_open:
@@ -238,6 +246,8 @@ def train(CONFIG):
             for minibatch_i, (inputs, labels) in enumerate(valid_loader):
                 inputs = inputs.float().to(device)
                 labels = labels.to(device)
+                
+                inputs = normalizer(inputs)
                 
                 if CONFIG.enable_open:
                     noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).to(device)
