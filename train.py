@@ -196,8 +196,8 @@ def train(CONFIG):
             optimizer.zero_grad()
             if CONFIG.enable_open:
                 if epoch_i < CONFIG.open_start_epoch:
-                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).to(device)
-                else:
+                    noise_mask = None
+-               else:
                     noise_mask = replace_with_pure_noise(
                         images=inputs,
                         targets=labels,

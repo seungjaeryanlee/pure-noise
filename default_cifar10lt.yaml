@@ -5,10 +5,10 @@ train_transform_reprs:
 - "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
 - "ToTensor()"
-# - "Cutout(n_holes=1, length=16)"
-# - "RandomApply([ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)"
-# - "RandomGrayscale(p=0.2)"
-# - "RandomApply([GaussianBlur(kernel_size=3, sigma=[.1, 2.])], p=0.5)"
+- "Cutout(n_holes=1, length=16)"
+- "RandomApply([ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)"
+- "RandomGrayscale(p=0.2)"
+- "RandomApply([GaussianBlur(kernel_size=3, sigma=[.1, 2.])], p=0.5)"
 valid_transform_reprs:
 - "ToTensor()"
 
@@ -40,7 +40,7 @@ enable_linear_warmup: True
 use_adam: False
 
 # Logging
-enable_wandb: False
+enable_wandb: True
 wandb_entity: "mlrc-pure-noise"
 wandb_project: "pure-noise"
 wandb_name: ""
