@@ -69,7 +69,9 @@ def train(CONFIG):
     if CONFIG.use_subset_to_train:
         with open(CONFIG.train_subset_filepath, "r") as f:
             indices = [int(line.strip()) for line in f.readlines()]
-        train_dataset = torch.utils.data.Subset(train_dataset, indices)
+        train_dataset_new = torch.utils.data.Subset(train_dataset, indices)
+        train_dataset_new.targets = list(np.array(train_dataset.targets)[indices])
+        train_dataset = train_dataset_new
 
     print(f'Train dataset length: {len(train_dataset)}, Valid dataset length: {len(valid_dataset)}')
 
