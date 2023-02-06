@@ -5,10 +5,10 @@ train_transform_reprs:
 - "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
 - "ToTensor()"
-- "Cutout(n_holes=1, length=16)"
-- "RandomApply([ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)"
-- "RandomGrayscale(p=0.2)"
-- "RandomApply([GaussianBlur(kernel_size=3, sigma=[.1, 2.])], p=0.5)"
+# - "Cutout(n_holes=1, length=16)"
+# - "RandomApply([ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)"
+# - "RandomGrayscale(p=0.2)"
+# - "RandomApply([GaussianBlur(kernel_size=3, sigma=[.1, 2.])], p=0.5)"
 valid_transform_reprs:
 - "ToTensor()"
 
@@ -40,7 +40,7 @@ enable_linear_warmup: True
 use_adam: False
 
 # Logging
-enable_wandb: True
+enable_wandb: False
 wandb_entity: "mlrc-pure-noise"
 wandb_project: "pure-noise"
 wandb_name: ""
@@ -61,6 +61,9 @@ pure_noise_mean: [0.4914, 0.4822, 0.4465]
 pure_noise_std: [0.2023, 0.1994, 0.2010]
 pure_noise_image_size: 32
 open_start_epoch: 160
+
+# BN
+noise_bn_runner: STANDARD
 
 # Debugging
 debug_run: False

@@ -121,7 +121,7 @@ def train(CONFIG):
     net = initialize_model(
         model_name=CONFIG.model, 
         num_classes=NUM_CLASSES, 
-        enable_dar_bn=CONFIG.enable_open, 
+        noise_bn_runner=CONFIG.noise_bn_runner, 
         dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
     

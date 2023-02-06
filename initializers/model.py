@@ -5,7 +5,7 @@ def _count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def initialize_model(model_name, num_classes, enable_dar_bn=False, dropout_rate=0.3):
+def initialize_model(model_name, num_classes, noise_bn_runner, dropout_rate=0.3):
     net = None
 
     if model_name == 'WideResNet-28-10-torchdistill':
@@ -16,7 +16,7 @@ def initialize_model(model_name, num_classes, enable_dar_bn=False, dropout_rate=
             dropout_p=dropout_rate,
             block=WideBasicBlock,
             num_classes=num_classes,
-            enable_dar_bn=enable_dar_bn,
+            noise_bn_runner=noise_bn_runner,
         )
     elif model_name == 'WideResNet-28-10-xternalz':
         from networks import WideResNet
@@ -31,7 +31,7 @@ def initialize_model(model_name, num_classes, enable_dar_bn=False, dropout_rate=
         net = resnet32(num_classes=num_classes)
     elif model_name == 'ResNet-32-akamaster':
         from models.resnet_akamaster import resnet32
-        net = resnet32(num_classes=num_classes, enable_dar_bn=enable_dar_bn)
+        net = resnet32(num_classes=num_classes, noise_bn_runner=noise_bn_runner)
     elif model_name == 'ResNet-32-ldam':
         from models.resnet_ldam_drw import resnet32
         net = resnet32(num_classes=num_classes)
