@@ -4,13 +4,15 @@ use_subset_to_train: True
 train_subset_filepath: "cui_indices.txt"
 ir_ratio: 100
 train_transform_reprs:
-- "RandomCrop(32, padding=4)"
 - "RandomHorizontalFlip()"
+- "RandomCrop(32, padding=4)"
 - "ToTensor()"
-- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 valid_transform_reprs:
 - "ToTensor()"
-- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
+
+# Mean and std for normalization
+normalize_mean: [0.4914, 0.4822, 0.4465]
+normalize_std: [0.2023, 0.1994, 0.2010]
 
 # DataLoader
 num_workers: 8
@@ -37,6 +39,8 @@ use_adam: False
 
 # Logging
 enable_wandb: True
+wandb_entity: "mlrc-pure-noise"
+wandb_project: "pure-noise"
 wandb_name: ""
 
 # Checkpoint
