@@ -5,7 +5,7 @@ def _count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def initialize_model(model_name, num_classes, noise_bn_runner, dropout_rate=0.3):
+def initialize_model(model_name, num_classes, noise_bn_option, dropout_rate=0.3):
     net = None
 
     if model_name == 'WideResNet-28-10-torchdistill':
@@ -16,7 +16,7 @@ def initialize_model(model_name, num_classes, noise_bn_runner, dropout_rate=0.3)
             dropout_p=dropout_rate,
             block=WideBasicBlock,
             num_classes=num_classes,
-            noise_bn_runner=noise_bn_runner,
+            noise_bn_option=noise_bn_option,
         )
     elif model_name == 'WideResNet-28-10-xternalz':
         from networks import WideResNet
