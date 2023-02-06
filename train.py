@@ -197,7 +197,7 @@ def train(CONFIG):
             if CONFIG.enable_open:
                 if epoch_i < CONFIG.open_start_epoch:
                     noise_mask = None
--               else:
+                else:
                     noise_mask = replace_with_pure_noise(
                         images=inputs,
                         targets=labels,
