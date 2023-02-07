@@ -33,8 +33,8 @@ import torch.nn.functional as F
 import torch.nn.init as init
 
 from torch.autograd import Variable
-from .dar_bn import dar_bn
-from .dar_bn_sequential import DarBnSequential
+from .noise_bn_option import NoiseBnOption, run_noise_bn
+from .noise_bn_sequential import NoiseBnSequential
 
 __all__ = ['ResNet', 'resnet20', 'resnet32', 'resnet44', 'resnet56', 'resnet110', 'resnet1202']
 
@@ -56,13 +56,15 @@ class LambdaLayer(nn.Module):
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1, option='A', enable_dar_bn=False):
+    def __init__(self, in_planes, planes, stride=1, option='A', noise_bn_option=NoiseBnOption.STANDARD):
         super(BasicBlock, self).__init__()
-        self.enable_dar_bn = enable_dar_bn
+        self.noise_bn_option = noise_bn_option
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
+        self.bn1_noise = nn.BatchNorm2d(planes) if noise_bn_option == NoiseBnOption.AUXBN else None
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
+        self.bn2_noise = nn.BatchNorm2d(planes) if noise_bn_option == NoiseBnOption.AUXBN else None
 
         self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != planes:
@@ -80,23 +82,24 @@ class BasicBlock(nn.Module):
 
     def forward(self, x, noise_mask=None):
         conv1_out = self.conv1(x)
-        bn1_out = dar_bn(self.bn1, conv1_out, noise_mask) if self.enable_dar_bn else self.bn1(conv1_out)
+        bn1_out = run_noise_bn(conv1_out, noise_bn_option=self.noise_bn_option, noise_mask=noise_mask, natural_bn=self.bn1, noise_bn=self.bn1_noise)
         out = F.relu(bn1_out)
         conv2_out = self.conv2(out)
-        out = dar_bn(self.bn2, conv2_out, noise_mask) if self.enable_dar_bn else self.bn2(conv2_out)
+        out = run_noise_bn(conv2_out, noise_bn_option=self.noise_bn_option, noise_mask=noise_mask, natural_bn=self.bn1, noise_bn=self.bn1_noise)
         out += self.shortcut(x)
         out = F.relu(out)
         return out, noise_mask
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10, enable_dar_bn=False):
+    def __init__(self, block, num_blocks, num_classes=10, noise_bn_option=NoiseBnOption.STANDARD):
         super(ResNet, self).__init__()
-        self.enable_dar_bn = enable_dar_bn
+        self.noise_bn_option = noise_bn_option
         self.in_planes = 16
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(16)
+        self.bn1_noise = nn.BatchNorm2d(16) if noise_bn_option == NoiseBnOption.AUXBN else None
         self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2)
@@ -115,10 +118,10 @@ class ResNet(nn.Module):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride, enable_dar_bn=self.enable_dar_bn))
+            layers.append(block(self.in_planes, planes, stride, noise_bn_option=self.noise_bn_option))
             self.in_planes = planes * block.expansion
 
-        return DarBnSequential(*layers)
+        return NoiseBnSequential(*layers)
 
     def forward(self, x, noise_mask=None):
         '''
@@ -131,7 +134,7 @@ class ResNet(nn.Module):
             noise_mask: (N)
         '''
         conv1_out = self.conv1(x)
-        bn1_out = dar_bn(self.bn1, conv1_out, noise_mask) if self.enable_dar_bn else self.bn1(conv1_out)
+        bn1_out = run_noise_bn(conv1_out, noise_bn_option=self.noise_bn_option, noise_mask=noise_mask, natural_bn=self.bn1, noise_bn=self.bn1_noise)
         out = F.relu(bn1_out)
         out = self.layer1(out, noise_mask)
         out = self.layer2(out, noise_mask)
@@ -146,8 +149,8 @@ def resnet20():
     return ResNet(BasicBlock, [3, 3, 3])
 
 
-def resnet32(num_classes=10, enable_dar_bn=False):
-    return ResNet(BasicBlock, [5, 5, 5], num_classes=num_classes, enable_dar_bn=enable_dar_bn)
+def resnet32(num_classes=10, noise_bn_option=NoiseBnOption.STANDARD):
+    return ResNet(BasicBlock, [5, 5, 5], num_classes=num_classes, noise_bn_option=noise_bn_option)
 
 
 def resnet44():
