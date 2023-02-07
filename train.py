@@ -24,6 +24,7 @@ from replace_with_pure_noise import replace_with_pure_noise
 from torchvision.datasets import CIFAR10, CIFAR100
 from datasets.imbalanced_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
 from datasets.sampling import count_class_frequency, compute_class_weights_on_effective_num_samples, compute_sample_weights
+from models.noise_bn_option import NoiseBnOption
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -121,7 +122,7 @@ def train(CONFIG):
     net = initialize_model(
         model_name=CONFIG.model, 
         num_classes=NUM_CLASSES, 
-        enable_dar_bn=CONFIG.enable_open, 
+        noise_bn_option=NoiseBnOption[CONFIG.noise_bn_option],
         dropout_rate=CONFIG.dropout_rate)
     net = net.to(device)
     
@@ -195,7 +196,7 @@ def train(CONFIG):
             optimizer.zero_grad()
             if CONFIG.enable_open:
                 if epoch_i < CONFIG.open_start_epoch:
-                    noise_mask = torch.zeros(inputs.size(0), dtype=torch.bool).to(device)
+                    noise_mask = None
                 else:
                     noise_mask = replace_with_pure_noise(
                         images=inputs,

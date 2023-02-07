@@ -5,9 +5,8 @@ Modified from https://github.com/pytorch/pytorch/issues/19808#issuecomment-48729
 '''
 import torch.nn as nn
 
-class DarBnSequential(nn.Sequential):
+class NoiseBnSequential(nn.Sequential):
     def forward(self, x, noise_mask=None):
         for block in self._modules.values():
-            # assert (noise_mask is not None) == self.enable_dar_bn
             x, noise_mask = block(x, noise_mask)
         return x
