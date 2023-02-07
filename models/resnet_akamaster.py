@@ -85,7 +85,7 @@ class BasicBlock(nn.Module):
         bn1_out = run_noise_bn(conv1_out, noise_bn_option=self.noise_bn_option, noise_mask=noise_mask, natural_bn=self.bn1, noise_bn=self.bn1_noise)
         out = F.relu(bn1_out)
         conv2_out = self.conv2(out)
-        out = run_noise_bn(conv2_out, noise_bn_option=self.noise_bn_option, noise_mask=noise_mask, natural_bn=self.bn1, noise_bn=self.bn1_noise)
+        out = run_noise_bn(conv2_out, noise_bn_option=self.noise_bn_option, noise_mask=noise_mask, natural_bn=self.bn2, noise_bn=self.bn2_noise)
         out += self.shortcut(x)
         out = F.relu(out)
         return out, noise_mask
