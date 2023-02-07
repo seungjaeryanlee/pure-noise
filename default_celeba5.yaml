@@ -4,10 +4,16 @@ train_transform_reprs:
 - "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
 - "ToTensor()"
-- "Normalize((0.5037, 0.4335, 0.3993), (0.3116, 0.2951, 0.2953))"
+- "Cutout(n_holes=1, length=16)"
+- "RandomApply([ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8)"
+- "RandomGrayscale(p=0.2)"
+- "RandomApply([GaussianBlur(kernel_size=3, sigma=[.1, 2.])], p=0.5)"
 valid_transform_reprs:
 - "ToTensor()"
-- "Normalize((0.5037, 0.4335, 0.3993), (0.3116, 0.2951, 0.2953))"
+
+# Mean and std for normalization
+normalize_mean: [0.5037, 0.4335, 0.3993]
+normalize_std: [0.3116, 0.2951, 0.2953]
 
 # DataLoader
 num_workers: 8
@@ -34,11 +40,13 @@ use_adam: False
 
 # Logging
 enable_wandb: True
+wandb_entity: "mlrc-pure-noise"
+wandb_project: "pure-noise"
 wandb_name: ""
 
 # Checkpoint
 save_ckpt: True
-save_ckpt_epochs: [29, 49, 89]
+save_ckpt_epochs: [29, 59, 89]
 load_ckpt: False
 load_ckpt_filepath: "checkpoints/.pt"
 
@@ -51,7 +59,10 @@ delta: 0.333333333333333333333333333333333333
 pure_noise_mean: [0.5037, 0.4335, 0.3993]
 pure_noise_std: [0.3116, 0.2951, 0.2953]
 pure_noise_image_size: 32
-open_start_epoch: 50
+open_start_epoch: 30
+
+# BN
+noise_bn_option: DARBN
 
 # Debugging
 debug_run: False
