@@ -63,7 +63,7 @@ pure_noise_image_size: 32
 open_start_epoch: 160
 
 # BN
-noise_bn_option: STANDARD
+noise_bn_option: DARBN
 
 # Debugging
 debug_run: False
