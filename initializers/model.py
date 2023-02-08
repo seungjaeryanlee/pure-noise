@@ -31,7 +31,7 @@ def initialize_model(model_name, num_classes, noise_bn_option, dropout_rate=0.3)
         net = resnet32(num_classes=num_classes)
     elif model_name == 'ResNet-32-akamaster':
         from models.resnet_akamaster import resnet32
-        net = resnet32(num_classes=num_classes, noise_bn_runner=noise_bn_runner)
+        net = resnet32(num_classes=num_classes, noise_bn_option=noise_bn_option)
     elif model_name == 'ResNet-32-ldam':
         from models.resnet_ldam_drw import resnet32
         net = resnet32(num_classes=num_classes)
