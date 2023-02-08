@@ -1,7 +1,7 @@
 import numpy as np
 
 def count_class_frequency(labels, num_classes):
-    counts = np.arange(num_classes)
+    counts = np.zeros(num_classes)
     for label in labels:
         counts[label] += 1
     return counts
