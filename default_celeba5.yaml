@@ -19,7 +19,7 @@ normalize_std: [0.3116, 0.2951, 0.2953]
 num_workers: 8
 batch_size: 128
 enable_oversampling: False
-oversampling_start_epoch: 30
+oversampling_start_epoch: 60
 oversample_majority_class_num_samples: False
 oversample_use_effective_num_sample_weights: False
 enable_pin_memory: False
@@ -59,7 +59,7 @@ delta: 0.333333333333333333333333333333333333
 pure_noise_mean: [0.5037, 0.4335, 0.3993]
 pure_noise_std: [0.3116, 0.2951, 0.2953]
 pure_noise_image_size: 32
-open_start_epoch: 30
+open_start_epoch: 60
 
 # BN
 noise_bn_option: DARBN
