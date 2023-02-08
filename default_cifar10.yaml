@@ -4,10 +4,12 @@ train_transform_reprs:
 - "RandomHorizontalFlip()"
 - "RandomCrop(32, padding=4)"
 - "ToTensor()"
-- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
 valid_transform_reprs:
 - "ToTensor()"
-- "Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))"
+
+# Mean and std for normalization
+normalize_mean: [0.4914, 0.4822, 0.4465]
+normalize_std: [0.2023, 0.1994, 0.2010]
 
 # DataLoader
 num_workers: 8
@@ -35,6 +37,8 @@ adam_betas: [0.9, 0.999]
 
 # Logging
 enable_wandb: True
+wandb_entity: "mlrc-pure-noise"
+wandb_project: "pure-noise"
 wandb_name: ""
 
 # Checkpoint
@@ -53,6 +57,9 @@ pure_noise_mean: [0.4914, 0.4822, 0.4465]
 pure_noise_std: [0.2023, 0.1994, 0.2010]
 pure_noise_image_size: 32
 open_start_epoch: 160
+
+# BN
+noise_bn_option: DARBN
 
 # Debugging
 debug_run: False
