@@ -5,7 +5,6 @@
 python train.py config_filepath="default_cifar10.yaml" wandb_name='balanced-baseaug'
 
 # AutoAugment
-# TODO: does AutoAugment need normalize?
 python train.py config_filepath="default_cifar10.yaml" wandb_name='balanced-autoaug' \
 'train_transform_reprs=["AutoAugment(policy=AutoAugmentPolicy.CIFAR10)","ToTensor()"]'
 
