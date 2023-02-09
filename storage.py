@@ -1,8 +1,11 @@
+CHECKPOINT_SHARE_LINKS = {
+    "CIFAR10IR100__epoch_159.pt": "10gy-6Rte8DRx-5bN-prOMui7MhQPJFuW", # Run 5jtrlqhf
+    "CIFAR10IR100__epoch_199.pt": "1s92Cw4G9eA8cXKh5P8ScuGXEbmBa4SNh", # Run 5jtrlqhf
+    "CIFAR10IR100-open__epoch_199.pt": "1CPl779391DObXu5iJdS6J7KzeucLjSep", # Run 76iezxbc
+    "simclr-drs__epoch_199.pt": "1R2g_OcOG1XgRY6oDxXMqiC1cKoNJ-CQb", # Run wnvl5pmb
+}
+
 CHECKPOINT_URLS = {
-    "no-warmup-open-0121__epoch_199.pt": "https://drive.google.com/uc?id=1ZEaevP97mXYdLU_Jv6S5sm2oR3TZZLeF",
-    "no-warmup-open-majority-0121__epoch_199.pt": "https://drive.google.com/uc?id=1mJrMIjT8qPcDy7ZcY87ak-sWu8hLyE96",
-    "no-warmup-0121__epoch_199.pt": "https://drive.google.com/uc?id=1ekJzJenK0KoF8Y28ulHbWiiuhBpoT5uG",
-    "cui-indices__epoch_159.pt": "https://drive.google.com/uc?id=1WJ0TSmQREZhQo0Vv65mO886Jbfvx-5Ty",
-    "m2m-indices__epoch_159.pt": "https://drive.google.com/uc?id=130Deyqxeu26PfWkDV3G5Qr74Vg6Vq6PF",
-    "ldam-indices__epoch_159.pt": "https://drive.google.com/uc?id=1v1STO9hu-wDon2vsA7Sx08iajuiG5OdC",
+    k: f"https://drive.google.com/uc?id={v}"
+    for k, v in CHECKPOINT_SHARE_LINKS.items()
 }

@@ -18,3 +18,7 @@ enable_oversampling=True enable_open=True
 python train.py wandb_name="${WANDB_NAME}-0.16666" delta=0.16666 \
 load_ckpt=True load_ckpt_filepath="checkpoints/${WANDB_NAME}__epoch_159.pt" \
 enable_oversampling=True enable_open=True
+
+python train.py wandb_name="${WANDB_NAME}-0.83333" delta=0.83333 \
+load_ckpt=True load_ckpt_filepath="checkpoints/${WANDB_NAME}__epoch_159.pt" \
+enable_oversampling=True enable_open=True
