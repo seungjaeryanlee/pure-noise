@@ -50,13 +50,24 @@ def train(CONFIG):
     train_transform = initialize_transforms(CONFIG.train_transform_reprs)
     valid_transform = initialize_transforms(CONFIG.valid_transform_reprs)
 
+    if CONFIG.use_subset_to_train and CONFIG.dataset != "CIFAR-10-LT":
+        raise ValueError("Subset indices are only supported for CIFAR-10-LT")
+
     if CONFIG.dataset == 'CelebA-5':
         from datasets.celeba5 import build_train_dataset, build_valid_dataset
         train_dataset = build_train_dataset(transform=train_transform)
         valid_dataset = build_valid_dataset(transform=valid_transform)
         NUM_CLASSES = 5
     elif CONFIG.dataset == "CIFAR-10-LT":
-        train_dataset = IMBALANCECIFAR10(root=DATA_ROOT, train=True, transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
+        if CONFIG.use_subset_to_train:
+            train_dataset = CIFAR10(root=DATA_ROOT, train=True, transform=train_transform, download=True)
+            with open(CONFIG.train_subset_filepath, "r") as f:
+                indices = [int(line.strip()) for line in f.readlines()]
+            train_dataset_new = torch.utils.data.Subset(train_dataset, indices)
+            train_dataset_new.targets = list(np.array(train_dataset.targets)[indices])
+            train_dataset = train_dataset_new
+        else:
+            train_dataset = IMBALANCECIFAR10(root=DATA_ROOT, train=True, transform=train_transform, download=True, ir_ratio=CONFIG.ir_ratio)
         valid_dataset = CIFAR10(root=DATA_ROOT, train=False, transform=valid_transform, download=True)
         NUM_CLASSES = 10
     elif CONFIG.dataset == "CIFAR-10":
