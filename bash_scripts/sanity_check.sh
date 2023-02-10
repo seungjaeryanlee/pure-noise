@@ -1,4 +1,5 @@
 # Run this script to check if everything in the repo is set up correctly.
+set -e
 
 # Check all three datasets work
 python train.py enable_wandb=False debug_run=True \
