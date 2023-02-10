@@ -18,23 +18,9 @@ def initialize_model(model_name, num_classes, noise_bn_option, dropout_rate=0.3)
             num_classes=num_classes,
             noise_bn_option=noise_bn_option,
         )
-    elif model_name == 'WideResNet-28-10-xternalz':
-        from networks import WideResNet
-        net = WideResNet(
-            depth=28,
-            widen_factor=10,
-            dropRate=dropout_rate,
-            num_classes=num_classes,
-        )
-    elif model_name == 'ResNet-32-m2m':
-        from models.resnet_m2m import resnet32
-        net = resnet32(num_classes=num_classes)
     elif model_name == 'ResNet-32-akamaster':
         from models.resnet_akamaster import resnet32
         net = resnet32(num_classes=num_classes, noise_bn_option=noise_bn_option)
-    elif model_name == 'ResNet-32-ldam':
-        from models.resnet_ldam_drw import resnet32
-        net = resnet32(num_classes=num_classes)
     else:
         logging.error(f"{model_name} is not a supported model name.")
         assert ValueError(f"{model_name} is not a supported model name.")
