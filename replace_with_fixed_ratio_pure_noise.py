@@ -39,5 +39,5 @@ def replace_with_fixed_ratio_pure_noise(
     extended_images = torch.cat((images, noise_images), 0)
     # Create mask for noise images - later used by DAR-BN
     noise_mask = torch.ones(batch_size + noise_images_count, dtype=torch.bool).to(device)
-    noise_mask[:batch_size] = True
+    noise_mask[:batch_size] = False
     return extended_images, extended_targets, noise_mask
