@@ -7,6 +7,10 @@ train_transform_reprs:
 valid_transform_reprs:
 - "ToTensor()"
 
+# For dataset comparison experiments - only supported in CIFAR-10-LT
+use_subset_to_train: False
+train_subset_filepath: "DONOTUSE"
+
 # Mean and std for normalization
 normalize_mean: [0.4914, 0.4822, 0.4465]
 normalize_std: [0.2023, 0.1994, 0.2010]
