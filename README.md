@@ -19,10 +19,10 @@ To reproduce the tables in our paper, check the `bash_scripts/` directory and ru
 - `augmentation.sh` for Table 5
 - `balanced_cifar10.sh` for Table 6
 - `resnet.sh` for Table 7, 8
-- `TODO ADD` for Table 9
-- `TODO ADD` for Table 13
-- `TODO ADD` for Table 14
-- `delta.sh` for Table 15
+- `compare_dataset.sh` for Table 10
+- `search_inputnorm.sh` for Table 14
+- `batch_size.sh` for Table 15
+- `delta.sh` for Table 16
 
 
 
