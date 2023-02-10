@@ -15,13 +15,13 @@ normalize_std: [0.2023, 0.1994, 0.2010]
 num_workers: 8
 batch_size: 128
 enable_oversampling: False
-oversampling_start_epoch: 160
-oversample_majority_class_num_samples: False
-oversample_use_effective_num_sample_weights: False
+oversampling_start_epoch:
+oversample_majority_class_num_samples:
+oversample_use_effective_num_sample_weights:
 enable_pin_memory: False
 
 # Model
-model: "WideResNet-28-10-torchdistill" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
+model: "WideResNet-28-10-torchdistill" # "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill"
 dropout_rate: 0.3
 
 # Optimizer
@@ -52,11 +52,13 @@ num_epochs: 200
 
 # OPeN
 enable_open: False
-delta: 0.333333333333333333333333333333333333
+# delta: 0.333333333333333333333333333333333333
 pure_noise_mean: [0.4914, 0.4822, 0.4465]
 pure_noise_std: [0.2023, 0.1994, 0.2010]
 pure_noise_image_size: 32
 open_start_epoch: 160
+enable_replace_with_fixed_ratio_pure_noise: True
+noise_ratio: 0.25
 
 # BN
 noise_bn_option: DARBN

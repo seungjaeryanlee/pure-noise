@@ -20,6 +20,7 @@ from initializers import (
     InputNormalize,
 )
 from replace_with_pure_noise import replace_with_pure_noise
+from replace_with_fixed_ratio_pure_noise import replace_with_fixed_ratio_pure_noise
 
 from torchvision.datasets import CIFAR10, CIFAR100
 from datasets.imbalanced_cifar import IMBALANCECIFAR10, IMBALANCECIFAR100
@@ -205,15 +206,26 @@ def train(CONFIG):
                 if epoch_i < CONFIG.open_start_epoch:
                     noise_mask = None
                 else:
-                    noise_mask = replace_with_pure_noise(
-                        images=inputs,
-                        targets=labels,
-                        delta=CONFIG.delta,
-                        num_samples_per_class=num_samples_per_class,
-                        dataset_mean=pure_noise_mean,
-                        dataset_std=pure_noise_std,
-                        image_size=CONFIG.pure_noise_image_size,
-                    )
+                    if CONFIG.enable_replace_with_fixed_ratio_pure_noise:
+                        inputs, labels, noise_mask = replace_with_fixed_ratio_pure_noise(
+                            images=inputs,
+                            targets=labels,
+                            noise_ratio=CONFIG.noise_ratio,
+                            dataset_mean=pure_noise_mean,
+                            dataset_std=pure_noise_std,
+                            image_size=CONFIG.pure_noise_image_size,
+                            num_classes=NUM_CLASSES
+                        )
+                    else:
+                        noise_mask = replace_with_pure_noise(
+                            images=inputs,
+                            targets=labels,
+                            delta=CONFIG.delta,
+                            num_samples_per_class=num_samples_per_class,
+                            dataset_mean=pure_noise_mean,
+                            dataset_std=pure_noise_std,
+                            image_size=CONFIG.pure_noise_image_size,
+                        )
                 outputs = net(inputs, noise_mask=noise_mask)
             else:
                 outputs = net(inputs)

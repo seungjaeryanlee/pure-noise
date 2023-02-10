@@ -25,7 +25,7 @@ oversample_use_effective_num_sample_weights: False
 enable_pin_memory: False
 
 # Model
-model: "WideResNet-28-10-torchdistill" # "ResNet-32-m2m" or "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill" or "WideResNet-28-10-xternalz"
+model: "WideResNet-28-10-torchdistill" # "ResNet-32-akamaster" or "WideResNet-28-10-torchdistill"
 dropout_rate: 0.3
 
 # Optimizer
@@ -60,6 +60,7 @@ pure_noise_mean: [0.5037, 0.4335, 0.3993]
 pure_noise_std: [0.3116, 0.2951, 0.2953]
 pure_noise_image_size: 32
 open_start_epoch: 60
+enable_replace_with_fixed_ratio_pure_noise: False
 
 # BN
 noise_bn_option: DARBN
