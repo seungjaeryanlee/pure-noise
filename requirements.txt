@@ -9,3 +9,4 @@ omegaconf
 seaborn
 matplotlib
 scikit-learn
+matplotlib-venn
