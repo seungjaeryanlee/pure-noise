@@ -58,7 +58,7 @@ pure_noise_std: [0.2023, 0.1994, 0.2010]
 pure_noise_image_size: 32
 open_start_epoch: 160
 enable_replace_with_fixed_ratio_pure_noise: True
-noise_ratio: 0.2
+noise_ratio: 0.25
 
 # BN
 noise_bn_option: DARBN

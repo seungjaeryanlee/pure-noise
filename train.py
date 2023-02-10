@@ -200,13 +200,14 @@ def train(CONFIG):
                     noise_mask = None
                 else:
                     if CONFIG.enable_replace_with_fixed_ratio_pure_noise:
-                        noise_mask = replace_with_fixed_ratio_pure_noise(
+                        inputs, labels, noise_mask = replace_with_fixed_ratio_pure_noise(
                             images=inputs,
                             targets=labels,
                             noise_ratio=CONFIG.noise_ratio,
                             dataset_mean=pure_noise_mean,
                             dataset_std=pure_noise_std,
                             image_size=CONFIG.pure_noise_image_size,
+                            num_classes=NUM_CLASSES
                         )
                     else:
                         noise_mask = replace_with_pure_noise(
