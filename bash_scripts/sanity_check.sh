@@ -53,3 +53,14 @@ noise_bn_option='AUXBN'
 
 python train.py enable_wandb=False debug_run=True \
 noise_bn_option='DARBN'
+
+
+# Check all three indices work
+python train.py enable_wandb=False debug_run=True \
+use_subset_to_train=True train_subset_filepath=cifar10ir100_indices_cui.txt
+
+python train.py enable_wandb=False debug_run=True \
+use_subset_to_train=True train_subset_filepath=cifar10ir100_indices_ldam.txt
+
+python train.py enable_wandb=False debug_run=True \
+use_subset_to_train=True train_subset_filepath=cifar10ir100_indices_m2m.txt
