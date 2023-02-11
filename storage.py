@@ -9,6 +9,10 @@ CHECKPOINT_SHARE_LINKS = {
     "CIFAR100IR100__epoch_199.pt": "1UwEt6VJklIGsG4SVNENv9aSqUfruyvIh", # Run eqieybqp
     "CIFAR100IR100-rs__epoch_199.pt": "1bdsOBDmdE4rPUjnxq7hwmXVEYFsqk5dH", # Run vkf1unb2
     "CIFAR100IR100-open__epoch_199.pt": "1xo7ex0cIanR-FxQ8qFlKSR0fv3PdUmXk", # Run o3zqupwn
+    
+    # analysis_gradients.ipynb
+    "ResNet__epoch_199.pt": "1XkUIye-pLj5YwcoisjsqHRxVrDYyNH1G", # Run 7mfj0jjb
+    "ResNet-open__epoch_199.pt": "1-4OkJtl00FGCrywY5vfpzGWyrUDzAx1Q", # Run jrollmrk
 }
 
 CHECKPOINT_URLS = {
