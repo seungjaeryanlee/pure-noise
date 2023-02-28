@@ -20,7 +20,7 @@ def initialize_lr_scheduler(
     # Add learning rate warm-up
     warmup_scheduler = optim.lr_scheduler.LinearLR(
         optimizer,
-        # NOTE(ryanlee): 0 causes ZeroDivisionError
+        # NOTE: 0 causes ZeroDivisionError
         start_factor=torch.finfo().tiny,
         end_factor=1,
         total_iters=5,
